@@ -1,12 +1,11 @@
 'use client';
 
-import { useFormState } from 'react-dom';
+import { useActionState, useEffect } from 'react';
 import { analyzeUrlAction } from '@/app/actions';
 import { Header } from '@/components/veritas-ai/header';
 import { UrlForm } from '@/components/veritas-ai/url-form';
 import { ResultsDisplay } from '@/components/veritas-ai/results-display';
 import type { FormState } from '@/lib/types';
-import { useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 const initialState: FormState = {
@@ -14,7 +13,7 @@ const initialState: FormState = {
 };
 
 export default function Home() {
-  const [state, formAction] = useFormState(analyzeUrlAction, initialState);
+  const [state, formAction] = useActionState(analyzeUrlAction, initialState);
   const { toast } = useToast();
 
   useEffect(() => {
