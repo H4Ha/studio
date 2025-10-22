@@ -8,6 +8,8 @@ interface AnalysisCardProps {
   modifiers: ScoreModifier[];
 }
 
+const fallbackIcon = 'HelpCircle';
+
 export function AnalysisCard({ modifiers }: AnalysisCardProps) {
   return (
     <Card className="shadow-lg">
@@ -18,7 +20,7 @@ export function AnalysisCard({ modifiers }: AnalysisCardProps) {
         <ul className="space-y-4">
           {modifiers.map((modifier, index) => {
             const isPositive = modifier.change > 0;
-            const Icon = LucideIcons[modifier.icon] as React.ElementType;
+            const IconComponent = LucideIcons[modifier.icon] || LucideIcons[fallbackIcon];
 
             return (
               <li key={index} className="flex items-start gap-4">
@@ -26,7 +28,7 @@ export function AnalysisCard({ modifiers }: AnalysisCardProps) {
                   "rounded-full p-2 flex-shrink-0 mt-1",
                   isPositive ? 'bg-primary/10' : 'bg-destructive/10'
                 )}>
-                  {Icon && <Icon className={cn(
+                  {IconComponent && <IconComponent className={cn(
                     "h-5 w-5",
                     isPositive ? 'text-primary' : 'text-destructive'
                   )} aria-hidden="true" />}

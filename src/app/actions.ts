@@ -2,10 +2,51 @@
 
 import { z } from 'zod';
 import { generateSummaryAndAnalysis } from '@/ai/flows/generate-summary-and-analysis';
-import { calculateScore, getMockAnalysisData } from '@/lib/scoring';
+import { calculateScore } from '@/lib/scoring';
 import type { AnalysisData, FormState } from '@/lib/types';
+import * as cheerio from 'cheerio';
 
 const urlSchema = z.string().url({ message: 'Please enter a valid URL, including https://' });
+
+async function scrapeUrl(url: string): Promise<AnalysisData> {
+  const response = await fetch(url, { headers: { 'User-Agent': 'VeritasAI/1.0' } });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch URL: ${response.statusText}`);
+  }
+  const html = await response.text();
+  const $ = cheerio.load(html);
+
+  // Basic meta tag extraction
+  const author = $('meta[name="author"]').attr('content') || $('meta[property="author"]').attr('content') || null;
+  const publicationDate = $('meta[property="article:published_time"]').attr('content') || $('time').attr('datetime') || null;
+
+  // Content extraction
+  $('script, style, nav, header, footer, aside').remove();
+  const content = $('body').text().replace(/\s+/g, ' ').trim();
+
+  const urlObject = new URL(url);
+  const domain = urlObject.hostname;
+
+  // Heuristics for site type
+  let siteType: AnalysisData['siteType'] = 'Unknown';
+  if (domain.includes('wikipedia.org')) siteType = 'Encyclopedia';
+  else if (domain.match(/news|bbc|cnn|reuters|apnews/)) siteType = 'News';
+  else if (domain.match(/blog|medium/)) siteType = 'Blog';
+  else if (domain.match(/science|nature|cell|plos/)) siteType = 'Science';
+
+  return {
+    url,
+    author,
+    publicationDate,
+    siteType,
+    linkCount: $('a').length,
+    externalLinkCount: $(`a[href^="http"]`).filter((i, el) => !$(el).attr('href')?.includes(domain)).length,
+    adCount: $('iframe[src*="ads"]').length + $('.ad, .advert, [id*="ad-"]').length,
+    hasCitations: /references|sources|citations/i.test(content),
+    content: content.substring(0, 5000), // Limit content size for AI analysis
+  };
+}
+
 
 export async function analyzeUrlAction(prevState: FormState, formData: FormData): Promise<FormState> {
   const rawUrl = formData.get('url');
@@ -19,17 +60,9 @@ export async function analyzeUrlAction(prevState: FormState, formData: FormData)
     };
   }
 
-  // To update the loading state on the client
-  // we need to return a pending state. However, useFormState doesn't re-render for this.
-  // The client will handle the loading state optimistically.
-
-  // Simulate network delay for analysis
-  await new Promise(resolve => setTimeout(resolve, 1500));
-
   try {
-    // In a real app, this would involve scraping and analysis
-    const mockData = getMockAnalysisData(validatedUrl.data);
-    const analysisResult = calculateScore(mockData);
+    const scrapedData = await scrapeUrl(validatedUrl.data);
+    const analysisResult = calculateScore(scrapedData);
 
     return {
       status: 'success',
@@ -37,9 +70,10 @@ export async function analyzeUrlAction(prevState: FormState, formData: FormData)
       result: analysisResult,
     };
   } catch (error) {
+    const message = error instanceof Error ? error.message : 'An unknown error occurred';
     return {
       status: 'error',
-      message: 'Failed to analyze the URL. Please try again.',
+      message: `Failed to analyze the URL: ${message}`,
     };
   }
 }

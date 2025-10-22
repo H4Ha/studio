@@ -3,13 +3,12 @@ import type { LucideIcon } from "lucide-react";
 export type AnalysisData = {
   url: string;
   author: string | null;
-  publicationDate: string | null; // ISO string
+  publicationDate: string | null; // ISO string or other date format
   siteType: 'News' | 'Encyclopedia' | 'Blog' | 'Forum' | 'Science' | 'Unknown';
   linkCount: number;
   externalLinkCount: number;
   adCount: number;
   hasCitations: boolean;
-  domainAgeDays: number;
   content: string; // for AI analysis
 };
 
