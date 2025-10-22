@@ -17,7 +17,7 @@ export type ScoreModifier = {
   factor: string;
   change: number;
   reason: string;
-  icon: LucideIcon;
+  icon: keyof typeof import("lucide-react");
 };
 
 export type AnalysisResult = {

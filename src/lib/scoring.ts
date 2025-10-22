@@ -1,13 +1,3 @@
-import {
-  User,
-  Calendar,
-  BookOpen,
-  Link2,
-  DollarSign,
-  CheckCircle,
-  Shield,
-  type LucideIcon
-} from "lucide-react";
 import type { AnalysisData, ScoreModifier, AnalysisResult } from "@/lib/types";
 import { differenceInYears } from 'date-fns';
 
@@ -101,10 +91,10 @@ export function calculateScore(data: AnalysisData): AnalysisResult {
   if (data.author) {
     const change = data.author.includes('Dr.') || data.author.includes('PhD') ? 15 : 10;
     score += change;
-    modifiers.push({ factor: 'Author', change, reason: `Author "${data.author}" identified, indicating accountability.`, icon: User });
+    modifiers.push({ factor: 'Author', change, reason: `Author "${data.author}" identified, indicating accountability.`, icon: 'User' });
   } else {
     score -= 10;
-    modifiers.push({ factor: 'Author', change: -10, reason: 'No clear author or publisher found, reducing credibility.', icon: User });
+    modifiers.push({ factor: 'Author', change: -10, reason: 'No clear author or publisher found, reducing credibility.', icon: 'User' });
   }
 
   // Publication Date
@@ -113,17 +103,17 @@ export function calculateScore(data: AnalysisData): AnalysisResult {
     const yearsAgo = differenceInYears(new Date(), pubDate);
     if (yearsAgo < 1) {
       score += 10;
-      modifiers.push({ factor: 'Freshness', change: 10, reason: 'Content is very recent (published within the last year).', icon: Calendar });
+      modifiers.push({ factor: 'Freshness', change: 10, reason: 'Content is very recent (published within the last year).', icon: 'Calendar' });
     } else if (yearsAgo > 5) {
       score -= 15;
-      modifiers.push({ factor: 'Freshness', change: -15, reason: `Content is outdated (published over ${yearsAgo} years ago).`, icon: Calendar });
+      modifiers.push({ factor: 'Freshness', change: -15, reason: `Content is outdated (published over ${yearsAgo} years ago).`, icon: 'Calendar' });
     } else {
       score += 5;
-      modifiers.push({ factor: 'Freshness', change: 5, reason: `Content is relatively recent (published ${yearsAgo} years ago).`, icon: Calendar });
+      modifiers.push({ factor: 'Freshness', change: 5, reason: `Content is relatively recent (published ${yearsAgo} years ago).`, icon: 'Calendar' });
     }
   } else {
     score -= 5;
-    modifiers.push({ factor: 'Freshness', change: -5, reason: 'No publication date found.', icon: Calendar });
+    modifiers.push({ factor: 'Freshness', change: -5, reason: 'No publication date found.', icon: 'Calendar' });
   }
 
   // Site Type
@@ -137,38 +127,38 @@ export function calculateScore(data: AnalysisData): AnalysisResult {
   }
   const siteTypeMod = siteTypeMap[data.siteType];
   score += siteTypeMod.change;
-  modifiers.push({ factor: 'Site Type', ...siteTypeMod, icon: BookOpen });
+  modifiers.push({ factor: 'Site Type', ...siteTypeMod, icon: 'BookOpen' });
 
   // Citations
   if (data.hasCitations) {
     score += 20;
-    modifiers.push({ factor: 'Citations', change: 20, reason: 'Sources and citations are present, supporting claims.', icon: CheckCircle });
+    modifiers.push({ factor: 'Citations', change: 20, reason: 'Sources and citations are present, supporting claims.', icon: 'CheckCircle' });
   } else {
     score -= 10;
-    modifiers.push({ factor: 'Citations', change: -10, reason: 'No citations or links to supporting evidence found.', icon: CheckCircle });
+    modifiers.push({ factor: 'Citations', change: -10, reason: 'No citations or links to supporting evidence found.', icon: 'CheckCircle' });
   }
 
   // Ads
   if (data.adCount === 0) {
     score += 5;
-    modifiers.push({ factor: 'Ad Presence', change: 5, reason: 'No ads found, suggesting a non-commercial focus.', icon: DollarSign });
+    modifiers.push({ factor: 'Ad Presence', change: 5, reason: 'No ads found, suggesting a non-commercial focus.', icon: 'DollarSign' });
   } else if (data.adCount > 5) {
     const change = -Math.min(data.adCount, 15);
     score += change;
-    modifiers.push({ factor: 'Ad Presence', change, reason: `High number of ads (${data.adCount}) may indicate a primary focus on revenue over content.`, icon: DollarSign });
+    modifiers.push({ factor: 'Ad Presence', change, reason: `High number of ads (${data.adCount}) may indicate a primary focus on revenue over content.`, icon: 'DollarSign' });
   }
   
   // External Links
   if (data.externalLinkCount > 10) {
     const change = Math.min(Math.floor(data.externalLinkCount / 5), 15);
     score += change;
-    modifiers.push({ factor: 'External Links', change, reason: `Numerous external links (${data.externalLinkCount}) suggest a well-referenced article.`, icon: Link2 });
+    modifiers.push({ factor: 'External Links', change, reason: `Numerous external links (${data.externalLinkCount}) suggest a well-referenced article.`, icon: 'Link2' });
   }
   
   // Domain Age
   if (data.domainAgeDays > 365 * 2) {
     score += 10;
-    modifiers.push({ factor: 'Domain Age', change: 10, reason: `Established domain (over 2 years old) suggests stability.`, icon: Shield });
+    modifiers.push({ factor: 'Domain Age', change: 10, reason: `Established domain (over 2 years old) suggests stability.`, icon: 'Shield' });
   }
 
   return {
