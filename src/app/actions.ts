@@ -20,9 +20,18 @@ async function scrapeUrl(url: string): Promise<AnalysisData> {
   const author = $('meta[name="author"]').attr('content') || $('meta[property="author"]').attr('content') || null;
   const publicationDate = $('meta[property="article:published_time"]').attr('content') || $('time').attr('datetime') || null;
 
-  // Content extraction
-  $('script, style, nav, header, footer, aside').remove();
-  const content = $('body').text().replace(/\s+/g, ' ').trim();
+  // Improved content extraction
+  // Try to find the main content in common article containers
+  let mainContent = $('article').text() || $('[role="main"]').text() || $('main').text();
+
+  // If specific containers aren't found, fall back to the body but clean it up
+  if (!mainContent || mainContent.length < 200) {
+    $('script, style, nav, header, footer, aside, form, [role="navigation"], [role="search"]').remove();
+    mainContent = $('body').text();
+  }
+  
+  const content = mainContent.replace(/\s+/g, ' ').trim();
+
 
   const urlObject = new URL(url);
   const domain = urlObject.hostname;
