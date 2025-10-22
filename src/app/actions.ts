@@ -16,8 +16,41 @@ async function scrapeUrl(url: string): Promise<AnalysisData> {
   const html = await response.text();
   const $ = cheerio.load(html);
 
-  // Basic meta tag extraction
-  const author = $('meta[name="author"]').attr('content') || $('meta[property="author"]').attr('content') || null;
+  // Improved author extraction
+  let author: string | null = null;
+  const authorSelectors = [
+    'meta[name="author"]',
+    'meta[property="author"]',
+    'meta[name="twitter:creator"]',
+    'meta[property="article:author"]',
+  ];
+  for (const selector of authorSelectors) {
+    author = $(selector).attr('content') || null;
+    if (author) break;
+  }
+  
+  if (!author) {
+    try {
+      const jsonLd = $('script[type="application/ld+json"]').html();
+      if (jsonLd) {
+        const data = JSON.parse(jsonLd);
+        if (data.author && data.author.name) {
+          author = data.author.name;
+        } else if (data.publisher && data.publisher.name) {
+          author = data.publisher.name; // Fallback to publisher
+        }
+      }
+    } catch (e) { /* Ignore parsing errors */ }
+  }
+
+  if(!author) {
+    author = $('[rel="author"], a[class*="author"], a[href*="/author/"], .byline, .author-name, .writer-name').first().text().trim() || null;
+    if (author && author.toLowerCase().startsWith('by ')) {
+      author = author.substring(3).trim();
+    }
+  }
+
+
   const publicationDate = $('meta[property="article:published_time"]').attr('content') || $('time').attr('datetime') || null;
 
   // Improved content extraction
