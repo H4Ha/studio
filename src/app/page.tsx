@@ -46,7 +46,7 @@ export default function Home() {
           <div className="mt-12">
             {showLoading && <LoadingIndicator />}
             {state.status === 'success' && state.result && !isPending && (
-              <div className="animate-in fade-in-0 slide-in-from-top-4 duration-500">
+              <div key={state.result.data.url} className="animate-in fade-in-0 slide-in-from-top-4 duration-500">
                 <ResultsDisplay result={state.result} />
               </div>
             )}
