@@ -89,7 +89,7 @@ export async function getAiAnalysisAction(analysisData: AnalysisData) {
       'Content Snippet': analysisData.content.substring(0, 2000), // Pass a snippet
     };
 
-    const result = await generateSummaryAndAnalysis({ analyzedData: dataForAI });
+    const result = await generateSummaryAndAnalysis({ analyzedData: JSON.stringify(dataForAI, null, 2) });
 
     if (!result.summary || !result.credibilityAnalysis) {
         throw new Error("AI analysis returned incomplete data.");

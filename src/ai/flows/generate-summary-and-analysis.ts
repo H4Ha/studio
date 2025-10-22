@@ -12,7 +12,7 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const GenerateSummaryAndAnalysisInputSchema = z.object({
-  analyzedData: z.record(z.any()).describe('The analyzed data from the webpage.'),
+  analyzedData: z.string().describe('A JSON string containing the analyzed data from the webpage.'),
 });
 export type GenerateSummaryAndAnalysisInput = z.infer<typeof GenerateSummaryAndAnalysisInputSchema>;
 
@@ -34,10 +34,12 @@ const prompt = ai.definePrompt({
   output: {schema: GenerateSummaryAndAnalysisOutputSchema},
   prompt: `You are an AI assistant that analyzes webpage content and credibility.
 
-  Based on the analyzed data provided, generate a concise summary of the webpage's content and provide an analysis of its credibility.  Consider factors such as the author's expertise, the presence of supporting evidence, potential biases, and the overall objectivity of the information presented.
+  Based on the analyzed data provided in the JSON string below, generate a concise summary of the webpage's content and provide an analysis of its credibility. Consider factors such as the author's expertise, the presence of supporting evidence, potential biases, and the overall objectivity of the information presented.
+
+  Do not mention that you were provided with a JSON object. Refer to it as "the analysis results" or "the provided data".
 
   Analyzed Data:
-  {{analyzedData}}`,
+  {{{analyzedData}}}`,
 });
 
 const generateSummaryAndAnalysisFlow = ai.defineFlow(
