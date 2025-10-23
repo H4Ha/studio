@@ -121,11 +121,12 @@ async function scrapeUrl(url: string): Promise<AnalysisData> {
 
     // Find author from content as a last resort
     if (!author) {
-        const bylineRegex = /^by\s(.+)$/im;
+        const bylineRegex = /by\s+([a-z\s.'-]+)/i;
         const matches = content.substring(0, 250).match(bylineRegex); // Search first 250 chars
         if (matches && matches[1]) {
             const potentialAuthor = matches[1].split(/[\n|\/]/)[0].trim();
-            if (potentialAuthor.length < 100) {
+            // Basic validation to avoid grabbing random text
+            if (potentialAuthor.length < 50 && potentialAuthor.split(' ').length < 5) {
                 author = potentialAuthor;
             }
         }
@@ -215,15 +216,19 @@ export async function analyzeTextAction(prevState: FormState, formData: FormData
   
   try {
     // Detect Author
-    let author: string | null = 'Unknown (Manual Input)';
-    const bylineRegex = /^by\s(.+)$/im; // Case-insensitive, multiline
-    const matches = text.match(bylineRegex);
+    let author: string | null = null;
+    const bylineRegex = /by\s+([a-z\s.'-]+)/i; 
+    const matches = text.substring(0, 500).match(bylineRegex);
     if(matches && matches[1]) {
-      const potentialAuthor = matches[1].trim();
-      if(potentialAuthor.length < 100) {
+      const potentialAuthor = matches[1].split(/[\n|\/]/)[0].trim();
+      if(potentialAuthor.length < 50 && potentialAuthor.split(' ').length < 5) {
          author = potentialAuthor;
       }
     }
+     if (!author) {
+      author = 'Unknown (Manual Input)';
+    }
+
     
     // Detect Site Type from content
     const lowercasedText = text.toLowerCase();
