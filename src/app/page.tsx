@@ -11,6 +11,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ThemeSwitcher } from '@/components/veritas-ai/theme-switcher';
+import type { Theme } from '@/components/veritas-ai/theme-switcher';
 
 const initialState: FormState = {
   status: 'idle',
@@ -21,7 +23,6 @@ export default function Home() {
   const [manualState, manualFormAction, isManualPending] = useActionState(analyzeTextAction, initialState);
   const [view, setView] = useState<'form' | 'results' | 'manual'>('form');
   const [resultKey, setResultKey] = useState(0);
-  const [theme, setTheme] = useState('dark');
 
   const { toast } = useToast();
 
@@ -29,7 +30,30 @@ export default function Home() {
   const finalState = view === 'manual' ? manualState : state;
 
   useEffect(() => {
-    document.documentElement.classList.add('dark');
+    const storedTheme = localStorage.getItem('theme') as Theme | null;
+    const initialTheme = storedTheme || 'system';
+
+    const applyTheme = (theme: Theme) => {
+      if (theme === 'system') {
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.classList.toggle('dark', systemPrefersDark);
+      } else {
+        document.documentElement.classList.toggle('dark', theme === 'dark');
+      }
+    };
+    
+    applyTheme(initialTheme);
+
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = () => {
+      const currentTheme = localStorage.getItem('theme') as Theme | null;
+      if (currentTheme === 'system') {
+        applyTheme('system');
+      }
+    };
+    mediaQuery.addEventListener('change', handleChange);
+
+    return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
   useEffect(() => {
@@ -62,7 +86,7 @@ export default function Home() {
   };
 
   return (
-    <div className={cn("flex flex-col min-h-screen", theme)}>
+    <div className="flex flex-col min-h-screen">
       <div className="absolute top-0 left-0 w-full h-full bg-grid-slate-900/[0.04] dark:bg-grid-slate-100/[0.03] [mask-image:linear-gradient(to_bottom,white_5%,transparent_100%)]"></div>
       <div className="relative z-10 flex flex-col min-h-screen">
         <Header />
@@ -104,6 +128,7 @@ export default function Home() {
           <p>&copy; {new Date().getFullYear()} VeritasAI. All rights reserved.</p>
         </footer>
       </div>
+      <ThemeSwitcher />
     </div>
   );
 }
