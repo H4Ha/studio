@@ -5,10 +5,6 @@ import { suggestAlternativeURLs } from '@/ai/flows/suggest-alternative-urls';
 import { calculateScore } from '@/lib/scoring';
 import type { AnalysisData, FormState } from '@/lib/types';
 import * as cheerio from 'cheerio';
-import { z } from 'zod';
-
-const urlSchema = z.string().url({ message: 'Please enter a valid URL, including https://' });
-const textSchema = z.string().min(100, { message: 'Please paste at least 100 characters of text to analyze.' });
 
 async function scrapeUrl(url: string): Promise<AnalysisData> {
   const response = await fetch(url, {
@@ -119,17 +115,18 @@ async function scrapeUrl(url: string): Promise<AnalysisData> {
 export async function analyzeUrlAction(prevState: FormState, formData: FormData): Promise<FormState> {
   const rawUrl = formData.get('url');
 
-  const validatedUrl = urlSchema.safeParse(rawUrl);
-
-  if (!validatedUrl.success) {
-    return {
-      status: 'error',
-      message: validatedUrl.error.errors[0].message,
-    };
+  // This schema is not used here but could be if we expand validation
+  // const urlSchema = z.string().url({ message: 'Please enter a valid URL, including https://' });
+  
+  if (typeof rawUrl !== 'string' || !rawUrl.startsWith('http')) {
+      return {
+          status: 'error',
+          message: 'Please enter a valid URL, including https://',
+      };
   }
 
   try {
-    const scrapedData = await scrapeUrl(validatedUrl.data);
+    const scrapedData = await scrapeUrl(rawUrl);
     const analysisResult = calculateScore(scrapedData);
 
     return {
@@ -153,13 +150,14 @@ export async function analyzeUrlAction(prevState: FormState, formData: FormData)
 export async function analyzeTextAction(prevState: FormState, formData: FormData): Promise<FormState> {
   const text = formData.get('text');
 
-  const validatedText = textSchema.safeParse(text);
+  // This schema is not used here but could be if we expand validation
+  // const textSchema = z.string().min(100, { message: 'Please paste at least 100 characters of text to analyze.' });
 
-  if (!validatedText.success) {
-    return {
-      status: 'error',
-      message: validatedText.error.errors[0].message,
-    };
+  if (typeof text !== 'string' || text.length < 100) {
+      return {
+          status: 'error',
+          message: 'Please paste at least 100 characters of text to analyze.',
+      };
   }
   
   try {
@@ -168,11 +166,11 @@ export async function analyzeTextAction(prevState: FormState, formData: FormData
       author: 'Unknown (Manual Input)',
       publicationDate: new Date().toISOString(),
       siteType: 'Unknown',
-      linkCount: (validatedText.data.match(/http/g) || []).length,
-      externalLinkCount: (validatedText.data.match(/http/g) || []).length,
+      linkCount: (text.match(/http/g) || []).length,
+      externalLinkCount: (text.match(/http/g) || []).length,
       adCount: 0,
-      hasCitations: /references|sources|citations/i.test(validatedText.data),
-      content: validatedText.data.substring(0, 5000),
+      hasCitations: /references|sources|citations/i.test(text),
+      content: text.substring(0, 5000),
     };
     
     const analysisResult = calculateScore(manualData);
@@ -194,7 +192,8 @@ export async function analyzeTextAction(prevState: FormState, formData: FormData
 }
 
 
-export async function getAiAnalysisAction(analysisData: AnalysisData) {
+export async function getAiAnalysisAction(analysisDataString: string) {
+  const analysisData: AnalysisData = JSON.parse(analysisDataString);
   try {
     const dataForAI = {
       URL: analysisData.url.startsWith('manual-text') ? 'Manually Pasted Text' : analysisData.url,

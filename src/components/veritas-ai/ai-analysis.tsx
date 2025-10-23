@@ -23,7 +23,8 @@ export function AiAnalysis({ analysisData }: AiAnalysisProps) {
     setError(null);
     setResult(null);
 
-    const response = await getAiAnalysisAction(analysisData);
+    const analysisDataString = JSON.stringify(analysisData);
+    const response = await getAiAnalysisAction(analysisDataString);
 
     if (response.status === 'success') {
       setResult(response.analysis);
