@@ -32,6 +32,7 @@ const prompt = ai.definePrompt({
   input: {schema: SuggestAlternativeURLsInputSchema},
   output: {schema: SuggestAlternativeURLsOutputSchema},
   tools: [googleAI.googleSearch],
+  model: 'googleai/gemini-2.5-pro',
   prompt: `You are an AI assistant that suggests alternative URLs with potentially more credible information on the same topic.
 
   The user is currently viewing this URL: {{{currentUrl}}}
