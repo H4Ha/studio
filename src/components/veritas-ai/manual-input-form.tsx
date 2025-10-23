@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import type { FormState } from '@/lib/types';
 import { useEffect, useRef } from 'react';
-import { FileText, Wand2 } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 
 function SubmitButton() {
@@ -53,8 +53,8 @@ export function ManualInputForm({ formAction, status }: ManualInputFormProps) {
   return (
     <Card className="shadow-lg bg-destructive/10 border-destructive/50">
         <CardHeader>
-            <CardTitle className="font-headline text-xl">Manual Analysis</CardTitle>
-            <CardDescription className="text-destructive-foreground/80">
+            <CardTitle className="font-headline text-xl text-destructive">Manual Analysis</CardTitle>
+            <CardDescription className="text-destructive/90">
                 The URL is protected against automated scraping. Please copy the article text from your browser and paste it below to proceed with the analysis.
             </CardDescription>
         </CardHeader>
