@@ -119,6 +119,18 @@ async function scrapeUrl(url: string): Promise<AnalysisData> {
     
     const content = mainContent.replace(/\s+/g, ' ').trim();
 
+    // Find author from content as a last resort
+    if (!author) {
+        const bylineRegex = /^by\s(.+)$/im;
+        const matches = content.substring(0, 250).match(bylineRegex); // Search first 250 chars
+        if (matches && matches[1]) {
+            const potentialAuthor = matches[1].split(/[\n|\/]/)[0].trim();
+            if (potentialAuthor.length < 100) {
+                author = potentialAuthor;
+            }
+        }
+    }
+
 
     const urlObject = new URL(url);
     const domain = urlObject.hostname;
@@ -129,6 +141,15 @@ async function scrapeUrl(url: string): Promise<AnalysisData> {
     else if (domain.match(/reuters|news|bbc|cnn|apnews|washingtonpost/)) siteType = 'News';
     else if (domain.match(/blog|medium/)) siteType = 'Blog';
     else if (domain.match(/science|nature|cell|plos/)) siteType = 'Science';
+
+    // Infer site type from author if unknown
+    if (siteType === 'Unknown' && author) {
+        const lowerCaseAuthor = author.toLowerCase();
+        if (lowerCaseAuthor.includes('reuters') || lowerCaseAuthor.includes('associated press')) {
+            siteType = 'News';
+        }
+    }
+
 
     return {
       url,
