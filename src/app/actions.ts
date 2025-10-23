@@ -42,6 +42,7 @@ async function scrapeUrl(url: string): Promise<AnalysisData> {
           const data = JSON.parse(jsonLd);
           if (Array.isArray(data)) {
             for (const item of data) {
+                // Handle nested @graph arrays, common in news sites
                 const graphData = item['@graph'] ? item['@graph'].find((g: any) => g['@type'] === 'NewsArticle' || g['@type'] === 'Article') : item;
                 if(graphData && graphData.author && graphData.author.name) {
                   author = graphData.author.name;
@@ -49,6 +50,7 @@ async function scrapeUrl(url: string): Promise<AnalysisData> {
                 }
             }
           } else {
+             // Handle single objects and objects with a @graph array
              const graphData = data['@graph'] ? data['@graph'].find((g: any) => g['@type'] === 'NewsArticle' || g['@type'] === 'Article') : data;
              if (graphData && graphData.author && graphData.author.name) {
               author = graphData.author.name;
