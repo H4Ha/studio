@@ -10,7 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import {googleSearch} from '@genkit-ai/google-genai';
+import {googleSearch} from '@genkit-ai/google-genai/tool';
 
 const SuggestAlternativeURLsInputSchema = z.object({
   topic: z.string().describe('The topic to find alternative URLs for.'),
