@@ -14,14 +14,14 @@ const fallbackIcon = 'HelpCircle';
 export function AnalysisCard({ modifiers }: AnalysisCardProps) {
   return (
     <Card className="shadow-lg bg-card/70 dark:bg-card/50 backdrop-blur-sm border border-border/20">
-      <CardHeader>
-        <CardTitle className="font-headline text-xl flex items-center gap-3">
+      <CardHeader className="p-4 sm:p-6">
+        <CardTitle className="font-headline text-lg sm:text-xl flex items-center gap-3">
           <Info className="text-primary" />
           Analysis Breakdown
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <ul className="space-y-4">
+      <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+        <ul className="space-y-3">
           {modifiers.map((modifier, index) => {
             const isPositive = modifier.change > 0;
             const IconComponent = LucideIcons[modifier.icon] || LucideIcons[fallbackIcon];
@@ -39,7 +39,7 @@ export function AnalysisCard({ modifiers }: AnalysisCardProps) {
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="font-semibold">{modifier.factor}</h3>
+                    <h3 className="font-semibold text-sm sm:text-base">{modifier.factor}</h3>
                     <span className={cn(
                       "font-bold text-sm",
                       isPositive ? 'text-primary' : 'text-destructive'
@@ -47,7 +47,7 @@ export function AnalysisCard({ modifiers }: AnalysisCardProps) {
                       ({modifier.change > 0 ? '+' : ''}{modifier.change})
                     </span>
                   </div>
-                  <p className="text-muted-foreground text-sm">{modifier.reason}</p>
+                  <p className="text-muted-foreground text-xs sm:text-sm">{modifier.reason}</p>
                 </div>
               </li>
             );

@@ -27,18 +27,18 @@ export function SourceInfoCard({ data }: SourceInfoCardProps) {
 
   return (
     <Card className="shadow-lg bg-card/70 dark:bg-card/50 backdrop-blur-sm border border-border/20">
-      <CardHeader>
-        <CardTitle className="font-headline text-xl truncate" title={data.title}>
+      <CardHeader className="p-4 sm:p-6">
+        <CardTitle className="font-headline text-lg sm:text-xl truncate" title={data.title}>
             {data.title}
         </CardTitle>
         {!isPasted && (
-            <CardDescription className="flex items-center gap-2">
-                <LinkIcon className="h-4 w-4" />
+            <CardDescription className="flex items-center gap-2 pt-1">
+                <LinkIcon className="h-4 w-4 flex-shrink-0" />
                 <a 
                     href={data.url} 
                     target="_blank" 
                     rel="noopener noreferrer" 
-                    className="truncate hover:underline"
+                    className="truncate hover:underline text-xs sm:text-sm"
                 >
                     {data.url}
                 </a>
@@ -46,7 +46,7 @@ export function SourceInfoCard({ data }: SourceInfoCardProps) {
             </CardDescription>
         )}
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 p-4 sm:p-6 pt-0 sm:pt-0">
         <InfoRow icon={User} label="Author" value={data.author || 'Not Found'} />
         <InfoRow icon={Calendar} label="Published" value={formattedDate} />
         <InfoRow 

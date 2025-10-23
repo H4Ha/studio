@@ -48,14 +48,14 @@ export function ScoreDisplay({ score }: ScoreDisplayProps) {
 
   return (
     <Card className="text-center shadow-lg overflow-hidden bg-card/70 dark:bg-card/50 backdrop-blur-sm border border-border/20">
-      <CardHeader>
-        <CardTitle className="font-headline text-xl flex items-center justify-center gap-3">
+      <CardHeader className="p-4 sm:p-6">
+        <CardTitle className="font-headline text-lg sm:text-xl flex items-center justify-center gap-3">
           <CheckCircle2 className="text-primary" />
           Credibility Score
         </CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col items-center justify-center">
-        <div className="relative inline-flex items-center justify-center w-[120px] h-[120px] sm:w-[140px] sm:h-[140px]">
+      <CardContent className="flex flex-col items-center justify-center p-4 sm:p-6">
+        <div className="relative inline-flex items-center justify-center w-[100px] h-[100px] sm:w-[140px] sm:h-[140px]">
           <svg className="w-full h-full" viewBox="0 0 120 120">
             <circle
               className="text-muted/20"
@@ -80,11 +80,11 @@ export function ScoreDisplay({ score }: ScoreDisplayProps) {
               style={{ strokeDashoffset, transition: 'stroke-dashoffset 1s ease-out' }}
             />
           </svg>
-          <span className={`absolute text-4xl sm:text-5xl font-bold font-headline`} style={{ color: scoreColor }}>
+          <span className={`absolute text-3xl sm:text-5xl font-bold font-headline`} style={{ color: scoreColor }}>
             {animatedScore}
           </span>
         </div>
-        <p className="text-muted-foreground mt-4 max-w-sm mx-auto text-sm">
+        <p className="text-muted-foreground mt-3 sm:mt-4 max-w-sm mx-auto text-xs sm:text-sm">
           A score from 0 to 100 indicating the trustworthiness of the content based on available data.
         </p>
       </CardContent>
