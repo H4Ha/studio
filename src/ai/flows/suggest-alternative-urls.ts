@@ -10,6 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import {googleSearch} from '@genkit-ai/google-genai';
 
 const SuggestAlternativeURLsInputSchema = z.object({
   topic: z.string().describe('The topic to find alternative URLs for.'),
@@ -18,7 +19,7 @@ const SuggestAlternativeURLsInputSchema = z.object({
 export type SuggestAlternativeURLsInput = z.infer<typeof SuggestAlternativeURLsInputSchema>;
 
 const SuggestAlternativeURLsOutputSchema = z.object({
-  alternativeUrls: z.array(z.string()).describe('An array of alternative URLs.'),
+  alternativeUrls: z.array(z.string().url()).describe('An array of real, existing alternative URLs from credible sources.'),
 });
 export type SuggestAlternativeURLsOutput = z.infer<typeof SuggestAlternativeURLsOutputSchema>;
 
@@ -30,11 +31,14 @@ const prompt = ai.definePrompt({
   name: 'suggestAlternativeURLsPrompt',
   input: {schema: SuggestAlternativeURLsInputSchema},
   output: {schema: SuggestAlternativeURLsOutputSchema},
+  tools: [googleSearch()],
   prompt: `You are an AI assistant that suggests alternative URLs with potentially more credible information on the same topic.
 
   The user is currently viewing this URL: {{{currentUrl}}}
 
-  Suggest 3 alternative URLs for the topic: {{{topic}}}. Return only the URLs in an array.
+  First, use the googleSearch tool to find 3 real, high-credibility articles on the topic: "{{{topic}}}". Do not use the current URL.
+  
+  Then, return the URLs of the top 3 most relevant and credible search results in the 'alternativeUrls' array. Ensure the URLs are valid and accessible. Do not make up URLs.
   `,
 });
 
