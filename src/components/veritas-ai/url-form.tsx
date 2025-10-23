@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
 import type { FormState } from '@/lib/types';
 import { useEffect, useRef } from 'react';
+import { cn } from '@/lib/utils';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -15,7 +16,10 @@ function SubmitButton() {
       type="submit"
       size="lg"
       disabled={pending}
-      className="bg-primary hover:bg-primary/90 w-full sm:w-auto shadow-md hover:shadow-lg transition-shadow"
+      className={cn(
+        "bg-primary hover:bg-primary/90 w-full sm:w-auto shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105",
+        "dark:glow-effect"
+      )}
       aria-disabled={pending}
     >
       {pending ? (
@@ -58,7 +62,7 @@ export function UrlForm({ formAction, status }: UrlFormProps) {
           type="url"
           placeholder="https://example.com/article"
           required
-          className="flex-grow text-base h-12 shadow-inner bg-card/50 pl-10"
+          className="flex-grow text-base h-12 shadow-inner bg-card/50 dark:bg-background/80 pl-10 focus:hard-glow transition-shadow duration-300"
           disabled={status === 'loading'}
           aria-label="URL to analyze"
         />

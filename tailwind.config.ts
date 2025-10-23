@@ -1,11 +1,50 @@
 import type {Config} from 'tailwindcss';
+const {
+  default: flattenColorPalette,
+} = require('tailwindcss/lib/util/flattenColorPalette');
+
+// Plugin to add utilities for CSS masks
+function addMasks({ addUtilities, theme }: any) {
+  const masks = {
+    '.mask-fade-to-t': {
+      'mask-image': 'linear-gradient(to top, transparent, black 25%)',
+    },
+    '.mask-fade-to-b': {
+      'mask-image': 'linear-gradient(to bottom, transparent, black 25%)',
+    },
+    '.mask-fade-to-r': {
+      'mask-image': 'linear-gradient(to right, transparent, black 25%)',
+    },
+    '.mask-fade-to-l': {
+      'mask-image': 'linear-gradient(to left, transparent, black 25%)',
+    },
+  };
+  addUtilities(masks);
+}
+
+// Plugin for the background grid
+function addGrid({ addBase, theme }: any) {
+  addBase({
+    '.bg-grid-slate-900': {
+      'background-size': '40px 40px',
+      'background-image':
+        'linear-gradient(to right, theme(colors.slate.900) 1px, transparent 1px), linear-gradient(to bottom, theme(colors.slate.900) 1px, transparent 1px)',
+    },
+    '.bg-grid-slate-100': {
+      'background-size': '40px 40px',
+      'background-image':
+        'linear-gradient(to right, theme(colors.slate.100) 1px, transparent 1px), linear-gradient(to bottom, theme(colors.slate.100) 1px, transparent 1px)',
+    },
+  });
+}
+
 
 export default {
   darkMode: ['class'],
   content: [
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+    'src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
     extend: {
@@ -95,5 +134,5 @@ export default {
       },
     },
   },
-  plugins: [require('tailwindcss-animate')],
+  plugins: [require('tailwindcss-animate'), addMasks, addGrid],
 } satisfies Config;
