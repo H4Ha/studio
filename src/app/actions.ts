@@ -9,10 +9,10 @@ import * as cheerio from 'cheerio';
 async function scrapeUrl(url: string): Promise<AnalysisData> {
   const response = await fetch(url, {
     headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Accept-Language': 'en-US,en;q=0.9',
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+      'Accept-Encoding': 'gzip, deflate, br',
+      'Accept-Language': 'en-US,en;q=0.9',
     },
   });
   if (!response.ok) {
@@ -41,17 +41,20 @@ async function scrapeUrl(url: string): Promise<AnalysisData> {
         if (jsonLd) {
           const data = JSON.parse(jsonLd);
           if (Array.isArray(data)) {
-            const graphData = data.find(item => item['@type'] === 'NewsArticle' || item['@type'] === 'Article');
-            if(graphData && graphData.author && graphData.author.name) {
-              author = graphData.author.name;
-              return false; // break the loop
+            for (const item of data) {
+                const graphData = item['@graph'] ? item['@graph'].find((g: any) => g['@type'] === 'NewsArticle' || g['@type'] === 'Article') : item;
+                if(graphData && graphData.author && graphData.author.name) {
+                  author = graphData.author.name;
+                  return false; // break the loop
+                }
             }
           } else {
-             if (data.author && data.author.name) {
-              author = data.author.name;
+             const graphData = data['@graph'] ? data['@graph'].find((g: any) => g['@type'] === 'NewsArticle' || g['@type'] === 'Article') : data;
+             if (graphData && graphData.author && graphData.author.name) {
+              author = graphData.author.name;
               return false; // break the loop
-            } else if (data.publisher && data.publisher.name) {
-              author = data.publisher.name; // Fallback to publisher
+            } else if (graphData && graphData.publisher && graphData.publisher.name) {
+              author = graphData.publisher.name; // Fallback to publisher
               return false; // break the loop
             }
           }
@@ -94,7 +97,7 @@ async function scrapeUrl(url: string): Promise<AnalysisData> {
   // Heuristics for site type
   let siteType: AnalysisData['siteType'] = 'Unknown';
   if (domain.includes('wikipedia.org')) siteType = 'Encyclopedia';
-  else if (domain.match(/reuters|news|bbc|cnn|apnews/)) siteType = 'News';
+  else if (domain.match(/reuters|news|bbc|cnn|apnews|washingtonpost/)) siteType = 'News';
   else if (domain.match(/blog|medium/)) siteType = 'Blog';
   else if (domain.match(/science|nature|cell|plos/)) siteType = 'Science';
 
@@ -114,9 +117,6 @@ async function scrapeUrl(url: string): Promise<AnalysisData> {
 
 export async function analyzeUrlAction(prevState: FormState, formData: FormData): Promise<FormState> {
   const rawUrl = formData.get('url');
-
-  // This schema is not used here but could be if we expand validation
-  // const urlSchema = z.string().url({ message: 'Please enter a valid URL, including https://' });
   
   if (typeof rawUrl !== 'string' || !rawUrl.startsWith('http')) {
       return {
@@ -149,9 +149,6 @@ export async function analyzeUrlAction(prevState: FormState, formData: FormData)
 
 export async function analyzeTextAction(prevState: FormState, formData: FormData): Promise<FormState> {
   const text = formData.get('text');
-
-  // This schema is not used here but could be if we expand validation
-  // const textSchema = z.string().min(100, { message: 'Please paste at least 100 characters of text to analyze.' });
 
   if (typeof text !== 'string' || text.length < 100) {
       return {
@@ -205,13 +202,6 @@ export async function getAiAnalysisAction(analysisDataString: string) {
     };
 
     const result = await generateSummaryAndAnalysis({ analyzedData: JSON.stringify(dataForAI, null, 2) });
-
-    if (!result.summary || !result.credibilityAnalysis) {
-        throw new Error("AI analysis returned incomplete data.");
-    }
-    
-    // Simulate AI generation time
-    await new Promise(resolve => setTimeout(resolve, 1000));
     
     return { status: 'success' as const, analysis: result };
 
