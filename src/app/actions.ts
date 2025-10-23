@@ -135,6 +135,8 @@ async function scrapeUrl(url: string): Promise<AnalysisData> {
 
     const urlObject = new URL(url);
     const domain = urlObject.hostname;
+    const title = $('title').first().text() || url;
+
 
     // Heuristics for site type
     let siteType: AnalysisData['siteType'] = 'Unknown';
@@ -154,6 +156,7 @@ async function scrapeUrl(url: string): Promise<AnalysisData> {
 
     return {
       url,
+      title,
       author,
       publicationDate,
       siteType,
@@ -241,9 +244,12 @@ export async function analyzeTextAction(prevState: FormState, formData: FormData
       siteType = 'Science';
     }
 
+    const title = text.substring(0, 80) + '... (Pasted Text)';
+
 
      const manualData: AnalysisData = {
       url: `manual-text-${Date.now()}`,
+      title,
       author: author,
       publicationDate: new Date().toISOString(),
       siteType: siteType,
@@ -278,6 +284,7 @@ export async function getAiAnalysisAction(analysisDataString: string) {
   try {
     const dataForAI = {
       URL: analysisData.url.startsWith('manual-text') ? 'Manually Pasted Text' : analysisData.url,
+      'Article Title': analysisData.title,
       Author: analysisData.author || 'Not available',
       'Site Type': analysisData.siteType,
       'Has Citations': analysisData.hasCitations,

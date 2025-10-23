@@ -35,19 +35,22 @@ export function AiAnalysis({ analysisData }: AiAnalysisProps) {
   };
 
   return (
-    <Card className="shadow-lg bg-card/70 dark:bg-card/50">
+    <Card className="shadow-lg bg-card/70 dark:bg-card/50 backdrop-blur-sm border border-border/20">
       <CardHeader>
-        <CardTitle className="font-headline text-xl">Generative AI Report</CardTitle>
+        <CardTitle className="font-headline text-xl flex items-center gap-3">
+          <Wand2 className="text-primary" />
+          Generative AI Report
+        </CardTitle>
         <CardDescription>
           Get a deeper, AI-powered analysis of the content's summary and potential biases.
         </CardDescription>
       </CardHeader>
       <CardContent>
         {!result && !isLoading && (
-          <div className="flex flex-col items-center justify-center text-center p-6 border-2 border-dashed rounded-lg bg-background">
+          <div className="flex flex-col items-center justify-center text-center p-6 border-2 border-dashed border-border/50 rounded-lg bg-background/50">
             <Wand2 className="h-10 w-10 text-muted-foreground mb-4" />
             <p className="mb-4 text-muted-foreground">Click below to generate a detailed report using AI.</p>
-            <Button onClick={handleGenerate} className="bg-accent hover:bg-accent/90 text-accent-foreground">
+            <Button onClick={handleGenerate} className="bg-accent hover:bg-accent/90 text-accent-foreground shadow-md hover:shadow-lg transition-shadow">
               <Wand2 className="mr-2 h-4 w-4" />
               Generate AI Report
             </Button>
@@ -67,14 +70,14 @@ export function AiAnalysis({ analysisData }: AiAnalysisProps) {
           <div className="animate-in fade-in-50 duration-500">
             <Accordion type="single" collapsible defaultValue="summary" className="w-full">
               <AccordionItem value="summary">
-                <AccordionTrigger className="text-lg font-semibold">Summary</AccordionTrigger>
-                <AccordionContent className="text-base leading-relaxed text-foreground/90">
+                <AccordionTrigger className="text-lg font-semibold hover:no-underline">Summary</AccordionTrigger>
+                <AccordionContent className="text-base leading-relaxed text-foreground/90 pt-2">
                   {result.summary}
                 </AccordionContent>
               </AccordionItem>
-              <AccordionItem value="credibility">
-                <AccordionTrigger className="text-lg font-semibold">Credibility Analysis</AccordionTrigger>
-                <AccordionContent className="text-base leading-relaxed text-foreground/90">
+              <AccordionItem value="credibility" className="border-b-0">
+                <AccordionTrigger className="text-lg font-semibold hover:no-underline">Credibility Analysis</AccordionTrigger>
+                <AccordionContent className="text-base leading-relaxed text-foreground/90 pt-2">
                   {result.credibilityAnalysis}
                 </AccordionContent>
               </AccordionItem>
@@ -94,7 +97,7 @@ const LoadingSkeleton = () => (
             <Skeleton className="h-4 w-full" />
             <Skeleton className="h-4 w-3/4" />
         </div>
-        <div className="space-y-2">
+         <div className="space-y-2 pt-4">
             <Skeleton className="h-6 w-1/3" />
             <Skeleton className="h-4 w-full mt-2" />
             <Skeleton className="h-4 w-full" />

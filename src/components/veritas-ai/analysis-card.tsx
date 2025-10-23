@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import * as LucideIcons from 'lucide-react';
 import React from 'react';
+import { Check, Info } from 'lucide-react';
 
 interface AnalysisCardProps {
   modifiers: ScoreModifier[];
@@ -12,9 +13,12 @@ const fallbackIcon = 'HelpCircle';
 
 export function AnalysisCard({ modifiers }: AnalysisCardProps) {
   return (
-    <Card className="shadow-lg">
+    <Card className="shadow-lg bg-card/70 dark:bg-card/50 backdrop-blur-sm border border-border/20">
       <CardHeader>
-        <CardTitle className="font-headline text-xl">Analysis Breakdown</CardTitle>
+        <CardTitle className="font-headline text-xl flex items-center gap-3">
+          <Info className="text-primary" />
+          Analysis Breakdown
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <ul className="space-y-4">
@@ -23,7 +27,7 @@ export function AnalysisCard({ modifiers }: AnalysisCardProps) {
             const IconComponent = LucideIcons[modifier.icon] || LucideIcons[fallbackIcon];
 
             return (
-              <li key={index} className="flex items-start gap-4">
+              <li key={index} className="flex items-start gap-4 p-3 rounded-lg bg-background/50 hover:bg-background transition-colors">
                 <div className={cn(
                   "rounded-full p-2 flex-shrink-0 mt-1",
                   isPositive ? 'bg-primary/10' : 'bg-destructive/10'

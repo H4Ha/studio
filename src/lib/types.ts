@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 
 export type AnalysisData = {
   url: string;
+  title: string;
   author: string | null;
   publicationDate: string | null; // ISO string or other date format
   siteType: 'News' | 'Encyclopedia' | 'Blog' | 'Forum' | 'Science' | 'Unknown';

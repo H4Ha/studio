@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useEffect, useState } from 'react';
+import { useActionState, useEffect, useState, useRef } from 'react';
 import { analyzeUrlAction, analyzeTextAction } from '@/app/actions';
 import { Header } from '@/components/veritas-ai/header';
 import { UrlForm } from '@/components/veritas-ai/url-form';
@@ -9,7 +9,7 @@ import { ResultsDisplay } from '@/components/veritas-ai/results-display';
 import type { FormState } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, RefreshCw } from 'lucide-react';
 
 const initialState: FormState = {
   status: 'idle',
@@ -18,83 +18,78 @@ const initialState: FormState = {
 export default function Home() {
   const [state, formAction, isUrlPending] = useActionState(analyzeUrlAction, initialState);
   const [manualState, manualFormAction, isManualPending] = useActionState(analyzeTextAction, initialState);
-  
+  const [view, setView] = useState<'form' | 'results' | 'manual'>('form');
+  const [resultKey, setResultKey] = useState(0);
+
   const { toast } = useToast();
-  const [showLoading, setShowLoading] = useState(false);
-  const [showManualInput, setShowManualInput] = useState(false);
 
   const isPending = isUrlPending || isManualPending;
-  const finalState = manualState.status !== 'idle' ? manualState : state;
+  const finalState = view === 'manual' ? manualState : state;
 
   useEffect(() => {
     if (isPending) {
-      setShowLoading(true);
-      setShowManualInput(false); // Hide manual input during analysis
-    } else {
-      setShowLoading(false);
+        setView('results');
     }
   }, [isPending]);
-
+  
   useEffect(() => {
-    if (state.status === 'error' && state.message) {
-      if (state.message.includes('blocking automated analysis')) {
-         setShowManualInput(true);
+    if (finalState.status === 'error' && finalState.message) {
+      if (finalState.message.includes('blocking automated analysis')) {
+         setView('manual');
       } else {
         toast({
           variant: 'destructive',
           title: 'Analysis Error',
-          description: state.message,
+          description: finalState.message,
         });
+        setView('form'); // Go back to form on other errors
       }
     }
-    if (state.status === 'success') {
-      setShowManualInput(false);
+    if (finalState.status === 'success') {
+      setView('results');
+      setResultKey(prev => prev + 1); // Force re-mount of results
     }
-  }, [state, toast]);
-  
-  useEffect(() => {
-    if (manualState.status === 'error' && manualState.message) {
-        toast({
-          variant: 'destructive',
-          title: 'Analysis Error',
-          description: manualState.message,
-        });
-    }
-    if (manualState.status === 'success') {
-      setShowManualInput(false);
-    }
-  }, [manualState, toast]);
+  }, [finalState, toast]);
 
-  const handleBack = () => {
-    setShowManualInput(false);
-    // Reset state if needed
+  const handleReset = () => {
+    setView('form');
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-background to-muted/30">
       <Header />
       <main className="flex-grow container mx-auto px-4 py-8">
         <section className="max-w-3xl mx-auto">
-          {showManualInput ? (
+          {view === 'form' && (
+            <div className="animate-in fade-in-0 duration-500">
+                <UrlForm formAction={formAction} status={isUrlPending ? 'loading' : state.status} />
+            </div>
+          )}
+
+          {view === 'manual' && (
              <div className="animate-in fade-in-0 duration-500">
-                <Button variant="ghost" onClick={handleBack} className="mb-4">
+                <Button variant="ghost" onClick={() => setView('form')} className="mb-4 text-muted-foreground hover:text-foreground">
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Back to URL Input
                 </Button>
                 <ManualInputForm formAction={manualFormAction} status={isManualPending ? 'loading' : manualState.status} errorMessage={state.message} />
             </div>
-          ) : (
-            <UrlForm formAction={formAction} status={isUrlPending ? 'loading' : state.status} />
           )}
 
-          <div className="mt-12">
-            {showLoading && <LoadingIndicator />}
-            {finalState.status === 'success' && finalState.result && !isPending && (
-              <div key={finalState.result.data.url || 'manual-result'} className="animate-in fade-in-0 slide-in-from-top-4 duration-500">
-                <ResultsDisplay result={finalState.result} />
-              </div>
-            )}
-          </div>
+          {view === 'results' && (
+            <div className="space-y-6">
+                <Button onClick={handleReset} variant="outline" className="flex items-center gap-2">
+                    <RefreshCw className="h-4 w-4" />
+                    Analyze Another
+                </Button>
+                 {isPending && <LoadingIndicator />}
+                 {finalState.status === 'success' && finalState.result && !isPending && (
+                  <div key={resultKey} className="animate-in fade-in-0 slide-in-from-top-4 duration-500">
+                    <ResultsDisplay result={finalState.result} />
+                  </div>
+                 )}
+            </div>
+          )}
         </section>
       </main>
       <footer className="py-6 text-center text-sm text-muted-foreground">
@@ -105,7 +100,7 @@ export default function Home() {
 }
 
 const LoadingIndicator = () => (
-  <div className="text-center animate-in fade-in-0 duration-300">
+  <div className="text-center animate-in fade-in-0 duration-300 p-8 border-2 border-dashed rounded-lg bg-card/50">
     <div className="flex justify-center items-center gap-3 text-muted-foreground">
       <svg className="animate-spin h-6 w-6 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

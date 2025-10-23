@@ -13,8 +13,9 @@ function SubmitButton() {
   return (
     <Button
       type="submit"
+      size="lg"
       disabled={pending}
-      className="bg-primary hover:bg-primary/90 w-full sm:w-auto"
+      className="bg-primary hover:bg-primary/90 w-full sm:w-auto shadow-md hover:shadow-lg transition-shadow"
       aria-disabled={pending}
     >
       {pending ? (
@@ -51,16 +52,17 @@ export function UrlForm({ formAction, status }: UrlFormProps) {
   
   return (
     <form ref={formRef} action={formAction} className="space-y-4">
-      <div className="flex flex-col sm:flex-row gap-2">
+      <div className="flex flex-col sm:flex-row gap-2 relative">
         <Input
           name="url"
           type="url"
           placeholder="https://example.com/article"
           required
-          className="flex-grow text-base h-12"
+          className="flex-grow text-base h-12 shadow-inner bg-card/50 pl-10"
           disabled={status === 'loading'}
           aria-label="URL to analyze"
         />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
         <SubmitButton />
       </div>
     </form>
