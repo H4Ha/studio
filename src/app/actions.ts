@@ -81,7 +81,23 @@ async function scrapeUrl(url: string): Promise<AnalysisData> {
     }
 
 
-    const publicationDate = $('meta[property="article:published_time"]').attr('content') || $('time').attr('datetime') || null;
+    let publicationDate = $('meta[property="article:published_time"]').attr('content') || $('time').attr('datetime') || null;
+
+    // Fallback for WeChat and similar sites storing date in script tags
+    if (!publicationDate) {
+      try {
+        const scriptContent = $('script[type="text/javascript"]').text();
+        const dateRegex = /(?:var\s+)?(?:publish_time|ct|create_time)\s*=\s*["']?(\d{10})["']?/;
+        const match = scriptContent.match(dateRegex);
+        if (match && match[1]) {
+          const timestamp = parseInt(match[1], 10) * 1000;
+          const date = new Date(timestamp);
+          if (!isNaN(date.getTime())) {
+            publicationDate = date.toISOString();
+          }
+        }
+      } catch(e) { /* Ignore script parsing errors */ }
+    }
 
     // Improved content extraction
     // Try to find the main content in common article containers
