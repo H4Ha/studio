@@ -8,6 +8,7 @@ import * as cheerio from 'cheerio';
 import { z } from 'zod';
 
 const urlSchema = z.string().url({ message: 'Please enter a valid URL, including https://' });
+const textSchema = z.string().min(100, { message: 'Please paste at least 100 characters of text to analyze.' });
 
 async function scrapeUrl(url: string): Promise<AnalysisData> {
   const response = await fetch(url, {
@@ -139,6 +140,9 @@ export async function analyzeUrlAction(prevState: FormState, formData: FormData)
   } catch (error) {
     const message = error instanceof Error ? error.message : 'An unknown error occurred';
     console.error(error);
+    if(message.includes('403')) {
+        return { status: 'error', message: 'This website is blocking automated analysis (403 Forbidden). Try pasting the text manually.' };
+    }
     return {
       status: 'error',
       message: `Failed to analyze the URL: ${message}`,
@@ -146,10 +150,54 @@ export async function analyzeUrlAction(prevState: FormState, formData: FormData)
   }
 }
 
+export async function analyzeTextAction(prevState: FormState, formData: FormData): Promise<FormState> {
+  const text = formData.get('text');
+
+  const validatedText = textSchema.safeParse(text);
+
+  if (!validatedText.success) {
+    return {
+      status: 'error',
+      message: validatedText.error.errors[0].message,
+    };
+  }
+  
+  try {
+     const manualData: AnalysisData = {
+      url: `manual-text-${Date.now()}`,
+      author: 'Unknown (Manual Input)',
+      publicationDate: new Date().toISOString(),
+      siteType: 'Unknown',
+      linkCount: (validatedText.data.match(/http/g) || []).length,
+      externalLinkCount: (validatedText.data.match(/http/g) || []).length,
+      adCount: 0,
+      hasCitations: /references|sources|citations/i.test(validatedText.data),
+      content: validatedText.data.substring(0, 5000),
+    };
+    
+    const analysisResult = calculateScore(manualData);
+    
+     return {
+      status: 'success',
+      message: 'Manual text analysis complete.',
+      result: analysisResult,
+    };
+
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'An unknown error occurred';
+    console.error(error);
+    return {
+      status: 'error',
+      message: `Failed to analyze the text: ${message}`,
+    };
+  }
+}
+
+
 export async function getAiAnalysisAction(analysisData: AnalysisData) {
   try {
     const dataForAI = {
-      URL: analysisData.url,
+      URL: analysisData.url.startsWith('manual-text') ? 'Manually Pasted Text' : analysisData.url,
       Author: analysisData.author || 'Not available',
       'Site Type': analysisData.siteType,
       'Has Citations': analysisData.hasCitations,
