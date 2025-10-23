@@ -8,9 +8,8 @@
  * - SuggestAlternativeURLsOutput - The return type for the suggestAlternativeURLs function.
  */
 
-import {ai} from '@/ai/genkit';
+import {ai, googleAI} from '@/ai/genkit';
 import {z} from 'genkit';
-import {googleAI} from '@genkit-ai/google-genai';
 
 const SuggestAlternativeURLsInputSchema = z.object({
   topic: z.string().describe('The topic to find alternative URLs for.'),
