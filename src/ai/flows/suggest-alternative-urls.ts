@@ -10,6 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import {googleAI} from '@genkit-ai/google-genai';
 
 const SuggestAlternativeURLsInputSchema = z.object({
   topic: z.string().describe('The topic to find alternative URLs for.'),
@@ -30,11 +31,12 @@ const prompt = ai.definePrompt({
   name: 'suggestAlternativeURLsPrompt',
   input: {schema: SuggestAlternativeURLsInputSchema},
   output: {schema: SuggestAlternativeURLsOutputSchema},
+  tools: [googleAI.googleSearch],
   prompt: `You are an AI assistant that suggests alternative URLs with potentially more credible information on the same topic.
 
   The user is currently viewing this URL: {{{currentUrl}}}
 
-  Find 3 real, high-credibility articles on the topic: "{{{topic}}}". Do not use the current URL.
+  Use the googleSearch tool to find 3 real, high-credibility articles on the topic: "{{{topic}}}". Do not use the current URL.
   
   Return the URLs of the top 3 most relevant and credible results in the 'alternativeUrls' array. Ensure the URLs are valid and accessible. Do not make up URLs.
   `,
