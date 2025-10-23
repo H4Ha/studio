@@ -138,14 +138,14 @@ async function scrapeUrl(url: string): Promise<AnalysisData> {
     // Heuristics for site type
     let siteType: AnalysisData['siteType'] = 'Unknown';
     if (domain.includes('wikipedia.org')) siteType = 'Encyclopedia';
-    else if (domain.match(/reuters|news|bbc|cnn|apnews|washingtonpost/)) siteType = 'News';
-    else if (domain.match(/blog|medium/)) siteType = 'Blog';
-    else if (domain.match(/science|nature|cell|plos/)) siteType = 'Science';
+    else if (domain.match(/reuters|news|bbc|cnn|apnews|washingtonpost|nytimes|wsj|theguardian|forbes|bloomberg/)) siteType = 'News';
+    else if (domain.match(/blog|medium|substack|wordpress/)) siteType = 'Blog';
+    else if (domain.match(/science|nature|cell|plos|arxiv|pubmed/)) siteType = 'Science';
 
     // Infer site type from author if unknown
     if (siteType === 'Unknown' && author) {
         const lowerCaseAuthor = author.toLowerCase();
-        if (lowerCaseAuthor.includes('reuters') || lowerCaseAuthor.includes('associated press')) {
+        if (lowerCaseAuthor.includes('reuters') || lowerCaseAuthor.includes('associated press') || lowerCaseAuthor.includes('washington post') || lowerCaseAuthor.includes('new york times')) {
             siteType = 'News';
         }
     }
@@ -228,11 +228,11 @@ export async function analyzeTextAction(prevState: FormState, formData: FormData
     // Detect Site Type from content
     const lowercasedText = text.toLowerCase();
     let siteType: AnalysisData['siteType'] = 'Unknown';
-    if (lowercasedText.includes('reuters') || lowercasedText.includes('associated press') || lowercasedText.includes('washington post')) {
+    if (lowercasedText.includes('reuters') || lowercasedText.includes('associated press') || lowercasedText.includes('washington post') || lowercasedText.includes('new york times')) {
       siteType = 'News';
     } else if (lowercasedText.includes('wikipedia')) {
       siteType = 'Encyclopedia';
-    } else if (lowercasedText.includes('nature') || lowercasedText.includes('science journal') || lowercasedText.includes('cell press')) {
+    } else if (lowercasedText.includes('nature') || lowercasedText.includes('science journal') || lowercasedText.includes('cell press') || lowercasedText.includes('pubmed')) {
       siteType = 'Science';
     }
 
