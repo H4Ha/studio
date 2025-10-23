@@ -177,15 +177,26 @@ export async function analyzeTextAction(prevState: FormState, formData: FormData
   }
   
   try {
+    // Detect Author
     let author: string | null = 'Unknown (Manual Input)';
     const bylineRegex = /^by\s(.+)$/im; // Case-insensitive, multiline
     const matches = text.match(bylineRegex);
     if(matches && matches[1]) {
-      // Limit author name length to avoid capturing entire paragraphs
       const potentialAuthor = matches[1].trim();
       if(potentialAuthor.length < 100) {
          author = potentialAuthor;
       }
+    }
+    
+    // Detect Site Type from content
+    const lowercasedText = text.toLowerCase();
+    let siteType: AnalysisData['siteType'] = 'Unknown';
+    if (lowercasedText.includes('reuters') || lowercasedText.includes('associated press') || lowercasedText.includes('washington post')) {
+      siteType = 'News';
+    } else if (lowercasedText.includes('wikipedia')) {
+      siteType = 'Encyclopedia';
+    } else if (lowercasedText.includes('nature') || lowercasedText.includes('science journal') || lowercasedText.includes('cell press')) {
+      siteType = 'Science';
     }
 
 
@@ -193,7 +204,7 @@ export async function analyzeTextAction(prevState: FormState, formData: FormData
       url: `manual-text-${Date.now()}`,
       author: author,
       publicationDate: new Date().toISOString(),
-      siteType: 'Unknown',
+      siteType: siteType,
       linkCount: (text.match(/http/g) || []).length,
       externalLinkCount: (text.match(/http/g) || []).length,
       adCount: 0,
