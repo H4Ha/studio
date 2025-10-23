@@ -37,7 +37,7 @@ export default function Home() {
 
   useEffect(() => {
     if (state.status === 'error' && state.message) {
-      if (state.message.includes('Forbidden')) {
+      if (state.message.includes('blocking automated analysis')) {
          setShowManualInput(true);
       } else {
         toast({
@@ -81,7 +81,7 @@ export default function Home() {
                   <ArrowLeft className="mr-2 h-4 w-4" />
                   Back to URL Input
                 </Button>
-                <ManualInputForm formAction={manualFormAction} status={isManualPending ? 'loading' : manualState.status} />
+                <ManualInputForm formAction={manualFormAction} status={isManualPending ? 'loading' : manualState.status} errorMessage={state.message} />
             </div>
           ) : (
             <UrlForm formAction={formAction} status={isUrlPending ? 'loading' : state.status} />

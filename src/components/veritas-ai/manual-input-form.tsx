@@ -39,9 +39,10 @@ function SubmitButton() {
 interface ManualInputFormProps {
   formAction: (payload: FormData) => void;
   status: FormState['status'];
+  errorMessage?: string;
 }
 
-export function ManualInputForm({ formAction, status }: ManualInputFormProps) {
+export function ManualInputForm({ formAction, status, errorMessage }: ManualInputFormProps) {
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
@@ -53,9 +54,9 @@ export function ManualInputForm({ formAction, status }: ManualInputFormProps) {
   return (
     <Card className="shadow-lg bg-destructive/10 border-destructive/50">
         <CardHeader>
-            <CardTitle className="font-headline text-xl text-destructive">Manual Analysis</CardTitle>
+            <CardTitle className="font-headline text-xl text-destructive">Manual Analysis Required</CardTitle>
             <CardDescription className="text-destructive/90">
-                The URL is protected against automated scraping. Please copy the article text from your browser and paste it below to proceed with the analysis.
+                {errorMessage || 'The URL is protected against automated scraping. Please copy the article text from your browser and paste it below to proceed with the analysis.'}
             </CardDescription>
         </CardHeader>
         <CardContent>
