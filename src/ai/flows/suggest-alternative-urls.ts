@@ -8,7 +8,7 @@
  * - SuggestAlternativeURLsOutput - The return type for the suggestAlternativeURLs function.
  */
 
-import {ai, googleAI} from '@/ai/genkit';
+import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const SuggestAlternativeURLsInputSchema = z.object({
@@ -18,7 +18,7 @@ const SuggestAlternativeURLsInputSchema = z.object({
 export type SuggestAlternativeURLsInput = z.infer<typeof SuggestAlternativeURLsInputSchema>;
 
 const SuggestAlternativeURLsOutputSchema = z.object({
-  alternativeUrls: z.array(z.string().url()).describe('An array of real, existing alternative URLs from credible sources.'),
+  alternativeUrls: z.array(z.string().url()).describe('An array of plausible, representative, but not necessarily real, alternative URLs from credible sources.'),
 });
 export type SuggestAlternativeURLsOutput = z.infer<typeof SuggestAlternativeURLsOutputSchema>;
 
@@ -30,15 +30,16 @@ const prompt = ai.definePrompt({
   name: 'suggestAlternativeURLsPrompt',
   input: {schema: SuggestAlternativeURLsInputSchema},
   output: {schema: SuggestAlternativeURLsOutputSchema},
-  tools: [googleAI.googleSearch],
-  model: 'googleai/gemini-2.5-pro',
-  prompt: `You are an AI assistant that suggests alternative URLs with potentially more credible information on the same topic.
+  prompt: `You are an AI assistant that suggests alternative news sources on a given topic.
 
   The user is currently viewing this URL: {{{currentUrl}}}
+  The topic is: "{{{topic}}}"
 
-  Use the googleSearch tool to find 3 real, high-credibility articles on the topic: "{{{topic}}}". Do not use the current URL.
-  
-  Return the URLs of the top 3 most relevant and credible results in the 'alternativeUrls' array. Ensure the URLs are valid and accessible. Do not make up URLs.
+  Based on the topic, generate a list of 3 plausible, representative URLs from different, highly-credible news organizations (like Reuters, Associated Press, BBC News, The New York Times, etc.).
+
+  IMPORTANT: The URLs you generate should be illustrative examples. They do not need to be real, working links, but they must follow a realistic URL structure for the source you choose. For example: https://www.credible-source.com/article/topic-name-goes-here-12345
+
+  Return the list of 3 URLs in the 'alternativeUrls' array.
   `,
 });
 
