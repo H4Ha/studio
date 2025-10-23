@@ -8,7 +8,7 @@
  * - SuggestAlternativeURLsOutput - The return type for the suggestAlternativeURLs function.
  */
 
-import {ai} from '@/ai/genkit';
+import {ai, googleAI} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const SuggestAlternativeURLsInputSchema = z.object({
@@ -18,11 +18,21 @@ const SuggestAlternativeURLsInputSchema = z.object({
 export type SuggestAlternativeURLsInput = z.infer<typeof SuggestAlternativeURLsInputSchema>;
 
 const SuggestAlternativeURLsOutputSchema = z.object({
-  alternativeUrls: z.array(z.string().url()).describe('An array of plausible, representative, but not necessarily real, alternative URLs from credible sources.'),
+  alternativeUrls: z
+    .array(
+      z.object({
+        title: z.string(),
+        url: z.string().url(),
+        source: z.string(),
+      })
+    )
+    .describe('An array of alternative URLs from credible sources.'),
 });
 export type SuggestAlternativeURLsOutput = z.infer<typeof SuggestAlternativeURLsOutputSchema>;
 
-export async function suggestAlternativeURLs(input: SuggestAlternativeURLsInput): Promise<SuggestAlternativeURLsOutput> {
+export async function suggestAlternativeURLs(
+  input: SuggestAlternativeURLsInput
+): Promise<SuggestAlternativeURLsOutput> {
   return suggestAlternativeURLsFlow(input);
 }
 
@@ -30,16 +40,18 @@ const prompt = ai.definePrompt({
   name: 'suggestAlternativeURLsPrompt',
   input: {schema: SuggestAlternativeURLsInputSchema},
   output: {schema: SuggestAlternativeURLsOutputSchema},
-  prompt: `You are an AI assistant that suggests alternative news sources on a given topic.
+  tools: [googleAI.googleSearch],
+  prompt: `You are an expert AI research assistant. The user wants to find alternative, credible sources for a given topic.
 
+  The user's current topic is: "{{{topic}}}"
   The user is currently viewing this URL: {{{currentUrl}}}
-  The topic is: "{{{topic}}}"
 
-  Based on the topic, generate a list of 3 plausible, representative URLs from different, highly-credible news organizations (like Reuters, Associated Press, BBC News, The New York Times, etc.).
+  Your task is to use the googleSearch tool to find 3 real, currently accessible articles on the same topic from different, highly-credible news organizations or academic sources (e.g., Reuters, Associated Press, BBC News, The New York Times, Nature, Science, etc.).
 
-  IMPORTANT: The URLs you generate should be illustrative examples. They do not need to be real, working links, but they must follow a realistic URL structure for the source you choose. For example: https://www.credible-source.com/article/topic-name-goes-here-12345
+  Do not suggest the same domain as the user's current URL.
 
-  Return the list of 3 URLs in the 'alternativeUrls' array.
+  For each article you find, provide its title, the full URL, and the name of the source.
+  Return these 3 articles in the 'alternativeUrls' array.
   `,
 });
 
@@ -50,7 +62,10 @@ const suggestAlternativeURLsFlow = ai.defineFlow(
     outputSchema: SuggestAlternativeURLsOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
-    return output!;
+    const {output} = await prompt(input, {model: googleAI.model('gemini-2.5-pro')});
+    if (!output) {
+      throw new Error('AI model did not return a valid output.');
+    }
+    return output;
   }
 );

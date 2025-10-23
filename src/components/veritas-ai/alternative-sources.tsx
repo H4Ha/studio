@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { suggestAlternativesAction } from '@/app/actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Globe, BookOpenCheck } from 'lucide-react';
+import { Globe, BookOpenCheck, ExternalLink } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
@@ -13,9 +13,15 @@ interface AlternativeSourcesProps {
   currentUrl: string;
 }
 
+type SuggestedUrl = {
+  title: string;
+  url: string;
+  source: string;
+}
+
 export function AlternativeSources({ topic, currentUrl }: AlternativeSourcesProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [urls, setUrls] = useState<string[]>([]);
+  const [urls, setUrls] = useState<SuggestedUrl[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const handleGenerate = async () => {
@@ -41,7 +47,7 @@ export function AlternativeSources({ topic, currentUrl }: AlternativeSourcesProp
           Find Alternative Sources
         </CardTitle>
         <CardDescription>
-          Explore other perspectives. AI can suggest alternative articles on the same topic.
+          Explore other perspectives. AI will search for real articles on the same topic.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -73,10 +79,16 @@ export function AlternativeSources({ topic, currentUrl }: AlternativeSourcesProp
               </AlertDescription>
             </Alert>
             <ul className="space-y-2">
-              {urls.map((url, index) => (
+              {urls.map((item, index) => (
                 <li key={index}>
-                  <a href={url} target="_blank" rel="noopener noreferrer" className="block p-3 rounded-md bg-background/50 hover:bg-accent/20 transition-colors">
-                    <p className="truncate text-primary hover:underline">{url}</p>
+                  <a href={item.url} target="_blank" rel="noopener noreferrer" className="block p-3 rounded-md bg-background/50 hover:bg-accent/20 transition-colors group">
+                    <div className='flex items-center justify-between gap-4'>
+                      <div>
+                        <p className="font-semibold text-primary group-hover:underline">{item.title}</p>
+                        <p className="text-sm text-muted-foreground">{item.source}</p>
+                      </div>
+                      <ExternalLink className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                    </div>
                   </a>
                 </li>
               ))}
@@ -90,8 +102,8 @@ export function AlternativeSources({ topic, currentUrl }: AlternativeSourcesProp
 
 const LoadingSkeleton = () => (
     <div className="space-y-3 p-2">
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-12 w-full" />
     </div>
 );
