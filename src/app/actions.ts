@@ -1,6 +1,7 @@
 'use server';
 
 import { generateSummaryAndAnalysis } from '@/ai/flows/generate-summary-and-analysis';
+import { suggestAlternativeURLs } from '@/ai/flows/suggest-alternative-urls';
 import { calculateScore } from '@/lib/scoring';
 import type { AnalysisData, FormState } from '@/lib/types';
 import * as cheerio from 'cheerio';
@@ -9,9 +10,22 @@ import { z } from 'zod';
 const urlSchema = z.string().url({ message: 'Please enter a valid URL, including https://' });
 
 async function scrapeUrl(url: string): Promise<AnalysisData> {
-  const response = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36' } });
+  const response = await fetch(url, { 
+    headers: { 
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+      'Accept-Language': 'en-US,en;q=0.9',
+      'Accept-Encoding': 'gzip, deflate, br',
+      'Connection': 'keep-alive',
+      'Upgrade-Insecure-Requests': '1',
+      'Sec-Fetch-Dest': 'document',
+      'Sec-Fetch-Mode': 'navigate',
+      'Sec-Fetch-Site': 'cross-site',
+      'Sec-Fetch-User': '?1',
+    } 
+  });
   if (!response.ok) {
-    throw new Error(`Failed to fetch URL: ${response.statusText}`);
+    throw new Error(`Failed to fetch URL: ${response.status} ${response.statusText}`);
   }
   const html = await response.text();
   const $ = cheerio.load(html);
@@ -31,15 +45,27 @@ async function scrapeUrl(url: string): Promise<AnalysisData> {
   
   if (!author) {
     try {
-      const jsonLd = $('script[type="application/ld+json"]').html();
-      if (jsonLd) {
-        const data = JSON.parse(jsonLd);
-        if (data.author && data.author.name) {
-          author = data.author.name;
-        } else if (data.publisher && data.publisher.name) {
-          author = data.publisher.name; // Fallback to publisher
+      $('script[type="application/ld+json"]').each((i, el) => {
+        const jsonLd = $(el).html();
+        if (jsonLd) {
+          const data = JSON.parse(jsonLd);
+          if (Array.isArray(data)) {
+            const graphData = data.find(item => item['@type'] === 'NewsArticle' || item['@type'] === 'Article');
+            if(graphData && graphData.author && graphData.author.name) {
+              author = graphData.author.name;
+              return false; // break the loop
+            }
+          } else {
+             if (data.author && data.author.name) {
+              author = data.author.name;
+              return false; // break the loop
+            } else if (data.publisher && data.publisher.name) {
+              author = data.publisher.name; // Fallback to publisher
+              return false; // break the loop
+            }
+          }
         }
-      }
+      });
     } catch (e) { /* Ignore parsing errors */ }
   }
 
@@ -56,10 +82,15 @@ async function scrapeUrl(url: string): Promise<AnalysisData> {
   // Improved content extraction
   // Try to find the main content in common article containers
   let mainContent = $('article').text() || $('[role="main"]').text() || $('main').text();
-
+  
+  if (!mainContent) {
+    // A more generic attempt if specific tags fail
+    mainContent = $('#content, #main, .post-content, .article-body, .story-content').text();
+  }
+  
   // If specific containers aren't found, fall back to the body but clean it up
   if (!mainContent || mainContent.length < 200) {
-    $('script, style, nav, header, footer, aside, form, [role="navigation"], [role="search"]').remove();
+    $('script, style, nav, header, footer, aside, form, [role="navigation"], [role="search"], .ad, .advert').remove();
     mainContent = $('body').text();
   }
   
@@ -72,7 +103,7 @@ async function scrapeUrl(url: string): Promise<AnalysisData> {
   // Heuristics for site type
   let siteType: AnalysisData['siteType'] = 'Unknown';
   if (domain.includes('wikipedia.org')) siteType = 'Encyclopedia';
-  else if (domain.match(/news|bbc|cnn|reuters|apnews/)) siteType = 'News';
+  else if (domain.match(/reuters|news|bbc|cnn|apnews/)) siteType = 'News';
   else if (domain.match(/blog|medium/)) siteType = 'Blog';
   else if (domain.match(/science|nature|cell|plos/)) siteType = 'Science';
 
@@ -113,6 +144,7 @@ export async function analyzeUrlAction(prevState: FormState, formData: FormData)
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'An unknown error occurred';
+    console.error(error);
     return {
       status: 'error',
       message: `Failed to analyze the URL: ${message}`,
@@ -145,5 +177,18 @@ export async function getAiAnalysisAction(analysisData: AnalysisData) {
   } catch (error) {
     console.error("AI Analysis Error:", error);
     return { status: 'error' as const, message: 'Could not generate AI analysis. The model may be unavailable or experiencing high load.' };
+  }
+}
+
+export async function suggestAlternativesAction(topic: string, currentUrl: string) {
+  try {
+    const result = await suggestAlternativeURLs({ topic, currentUrl });
+    if (!result.alternativeUrls || result.alternativeUrls.length === 0) {
+      return { status: 'success' as const, urls: [] };
+    }
+    return { status: 'success' as const, urls: result.alternativeUrls };
+  } catch(error) {
+    console.error("Suggest Alternatives Error:", error);
+    return { status: 'error' as const, message: 'Could not generate alternative URLs.' };
   }
 }
