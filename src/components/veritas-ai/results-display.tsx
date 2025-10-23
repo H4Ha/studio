@@ -12,7 +12,7 @@ interface ResultsDisplayProps {
 export function ResultsDisplay({ result }: ResultsDisplayProps) {
   return (
     <div className="space-y-8">
-      <div className="grid md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <ScoreDisplay score={result.score} />
         <SourceInfoCard data={result.data} />
       </div>

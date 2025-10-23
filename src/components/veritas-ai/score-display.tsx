@@ -55,7 +55,7 @@ export function ScoreDisplay({ score }: ScoreDisplayProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col items-center justify-center p-4 sm:p-6">
-        <div className="relative inline-flex items-center justify-center w-[100px] h-[100px] sm:w-[140px] sm:h-[140px]">
+        <div className="relative inline-flex items-center justify-center w-[120px] h-[120px] sm:w-[140px] sm:h-[140px]">
           <svg className="w-full h-full" viewBox="0 0 120 120">
             <circle
               className="text-muted/20"
