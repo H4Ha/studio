@@ -55,7 +55,7 @@ export function ScoreDisplay({ score }: ScoreDisplayProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col items-center justify-center">
-        <div className="relative inline-flex items-center justify-center w-[140px] h-[140px]">
+        <div className="relative inline-flex items-center justify-center w-[120px] h-[120px] sm:w-[140px] sm:h-[140px]">
           <svg className="w-full h-full" viewBox="0 0 120 120">
             <circle
               className="text-muted/20"
@@ -80,7 +80,7 @@ export function ScoreDisplay({ score }: ScoreDisplayProps) {
               style={{ strokeDashoffset, transition: 'stroke-dashoffset 1s ease-out' }}
             />
           </svg>
-          <span className={`absolute text-5xl font-bold font-headline`} style={{ color: scoreColor }}>
+          <span className={`absolute text-4xl sm:text-5xl font-bold font-headline`} style={{ color: scoreColor }}>
             {animatedScore}
           </span>
         </div>

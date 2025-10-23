@@ -17,8 +17,7 @@ function SubmitButton() {
       size="lg"
       disabled={pending}
       className={cn(
-        "bg-primary hover:bg-primary/90 w-full sm:w-auto shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105",
-        "dark:glow-effect"
+        "bg-primary hover:bg-primary/90 w-full sm:w-auto shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105"
       )}
       aria-disabled={pending}
     >
