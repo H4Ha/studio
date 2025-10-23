@@ -56,17 +56,19 @@ export function UrlForm({ formAction, status }: UrlFormProps) {
   
   return (
     <form ref={formRef} action={formAction} className="space-y-4">
-      <div className="flex flex-col sm:flex-row gap-2 relative">
-        <Input
-          name="url"
-          type="url"
-          placeholder="https://example.com/article"
-          required
-          className="flex-grow text-base h-12 shadow-inner bg-card/50 dark:bg-background/80 pl-10 focus:hard-glow transition-shadow duration-300"
-          disabled={status === 'loading'}
-          aria-label="URL to analyze"
-        />
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+      <div className="flex flex-col sm:flex-row gap-2">
+        <div className="relative flex-grow">
+          <Input
+            name="url"
+            type="url"
+            placeholder="https://example.com/article"
+            required
+            className="flex-grow text-base h-12 shadow-inner bg-card/50 dark:bg-background/80 pl-10 focus:hard-glow transition-shadow duration-300 w-full"
+            disabled={status === 'loading'}
+            aria-label="URL to analyze"
+          />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+        </div>
         <SubmitButton />
       </div>
     </form>
