@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import type { FormState } from '@/lib/types';
 import { useEffect, useRef } from 'react';
-import { FileText } from 'lucide-react';
+import { FileText, Info } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -59,7 +60,14 @@ export function ManualInputForm({ formAction, status, errorMessage }: ManualInpu
                 {errorMessage || 'The URL is protected against automated scraping. Please copy the article text from your browser and paste it below to proceed with the analysis.'}
             </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className='space-y-4'>
+             <Alert className="bg-background/80 border-border">
+              <Info className="h-4 w-4" />
+              <AlertTitle>Pro Tip!</AlertTitle>
+              <AlertDescription>
+                To select all text on a page, press <kbd className="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded-lg">Ctrl+A</kbd> (Windows) or <kbd className="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded-lg">Cmd+A</kbd> (Mac).
+              </AlertDescription>
+            </Alert>
             <form ref={formRef} action={formAction} className="space-y-4">
                 <Textarea
                     name="text"

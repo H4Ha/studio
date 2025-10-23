@@ -177,9 +177,21 @@ export async function analyzeTextAction(prevState: FormState, formData: FormData
   }
   
   try {
+    let author: string | null = 'Unknown (Manual Input)';
+    const bylineRegex = /^by\s(.+)$/im; // Case-insensitive, multiline
+    const matches = text.match(bylineRegex);
+    if(matches && matches[1]) {
+      // Limit author name length to avoid capturing entire paragraphs
+      const potentialAuthor = matches[1].trim();
+      if(potentialAuthor.length < 100) {
+         author = potentialAuthor;
+      }
+    }
+
+
      const manualData: AnalysisData = {
       url: `manual-text-${Date.now()}`,
-      author: 'Unknown (Manual Input)',
+      author: author,
       publicationDate: new Date().toISOString(),
       siteType: 'Unknown',
       linkCount: (text.match(/http/g) || []).length,
