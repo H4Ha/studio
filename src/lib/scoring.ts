@@ -1,89 +1,270 @@
 import type { AnalysisData, ScoreModifier, AnalysisResult } from "@/lib/types";
-import { differenceInYears, isValid } from 'date-fns';
+import { isValid } from 'date-fns';
+
+type Severity = ScoreModifier['severity'];
+
+function applyModifier(
+  modifiers: ScoreModifier[],
+  dimension: string,
+  criterion: string,
+  factor: string,
+  change: number,
+  reason: string,
+  severity: Severity,
+  icon: ScoreModifier['icon']
+): number {
+  const normalizedChange = Number(change.toFixed(2));
+  modifiers.push({ dimension, criterion, factor, change: normalizedChange, reason, severity, icon });
+  return normalizedChange;
+}
 
 export function calculateScore(data: AnalysisData): AnalysisResult {
-  let score = 50;
+  let score = 100;
   const modifiers: ScoreModifier[] = [];
 
-  // Author
-  if (data.author) {
-    const change = data.author.includes('Dr.') || data.author.includes('PhD') ? 15 : 10;
-    score += change;
-    modifiers.push({ factor: 'Author', change, reason: `Author "${data.author}" identified, indicating accountability.`, icon: 'User' });
+  // Dimension 1: Transparency & Accountability
+  const correctionsChange = data.correctionsPolicyFound ? 10 : -10;
+  score += applyModifier(
+    modifiers,
+    'Transparency & Accountability',
+    '1.1 Explicit Corrections Policy',
+    '1.1 Corrections Policy',
+    correctionsChange,
+    data.correctionsPolicyFound
+      ? 'Corrections or errata policy is discoverable, signaling accountability.'
+      : 'No visible corrections policy; accountability channel is missing.',
+    'Critical',
+    data.correctionsPolicyFound ? 'ShieldCheck' : 'ShieldAlert'
+  );
+
+  const ownershipChange = data.ownershipDisclosureFound ? 5 : -5;
+  score += applyModifier(
+    modifiers,
+    'Transparency & Accountability',
+    '1.2 Identifiable Ownership/Funding',
+    '1.2 Ownership & Funding',
+    ownershipChange,
+    data.ownershipDisclosureFound
+      ? 'Ownership or funding disclosure is available for readers.'
+      : 'No ownership/funding disclosure detected, limiting transparency.',
+    'Major',
+    data.ownershipDisclosureFound ? 'Landmark' : 'Building'
+  );
+
+  // Dimension 2: Authority & Sourcing
+  if (data.author && !data.authorIsGeneric) {
+    score += applyModifier(
+      modifiers,
+      'Authority & Sourcing',
+      '2.1 Identifiable Authorship',
+      '2.1 Authorship',
+      10,
+      `Author "${data.author}" is identified, supporting accountability.`,
+      'Critical',
+      'User'
+    );
   } else {
-    score -= 10;
-    modifiers.push({ factor: 'Author', change: -10, reason: 'No clear author or publisher found, reducing credibility.', icon: 'UserCircle' });
+    score += applyModifier(
+      modifiers,
+      'Authority & Sourcing',
+      '2.1 Identifiable Authorship',
+      '2.1 Authorship',
+      -15,
+      'Authorship is missing or generic, weakening accountability.',
+      'Critical',
+      'UserCircle'
+    );
   }
 
-  // Publication Date
-  if (data.publicationDate) {
-    const pubDate = new Date(data.publicationDate);
-    if(isValid(pubDate)) {
-      const yearsAgo = differenceInYears(new Date(), pubDate);
-      if (yearsAgo < 1) {
-        score += 10;
-        modifiers.push({ factor: 'Freshness', change: 10, reason: 'Content is very recent (published within the last year).', icon: 'CalendarCheck' });
-      } else if (yearsAgo > 5) {
-        score -= 15;
-        modifiers.push({ factor: 'Freshness', change: -15, reason: `Content is outdated (published over ${yearsAgo} years ago).`, icon: 'CalendarX' });
-      } else {
-        score += 5;
-        modifiers.push({ factor: 'Freshness', change: 5, reason: `Content is relatively recent (published ${yearsAgo} years ago).`, icon: 'CalendarClock' });
-      }
+  if (data.hasAuthorBioLink) {
+    score += applyModifier(
+      modifiers,
+      'Authority & Sourcing',
+      '2.2 Author Biography Link',
+      '2.2 Author Bio',
+      5,
+      'An author biography link enables credential verification.',
+      'Minor',
+      'BookUser'
+    );
+  }
+
+  // Dimension 3: Accuracy & Verifiability
+  if (data.externalLinkCount === 0) {
+    score += applyModifier(
+      modifiers,
+      'Accuracy & Verifiability',
+      '3.1 Citing External Sources',
+      '3.1 External Sources',
+      -10,
+      'No external sources are cited, reducing verifiability.',
+      'Major',
+      'Link'
+    );
+  } else {
+    const externalBonus = Math.min(data.externalLinkCount * 1.5, 15);
+    score += applyModifier(
+      modifiers,
+      'Accuracy & Verifiability',
+      '3.1 Citing External Sources',
+      '3.1 External Sources',
+      externalBonus,
+      `${data.externalLinkCount} external source link(s) support verification.`,
+      'Major',
+      'Link'
+    );
+  }
+
+  if (data.internalLinkCount > 0) {
+    const internalBonus = Math.min(data.internalLinkCount * 0.5, 5);
+    score += applyModifier(
+      modifiers,
+      'Accuracy & Verifiability',
+      '3.2 Citing Internal Sources',
+      '3.2 Internal Sources',
+      internalBonus,
+      `${data.internalLinkCount} internal link(s) indicate contextual depth.`,
+      'Minor',
+      'Link2'
+    );
+  }
+
+  if (data.isOpinionOrEditorial) {
+    if (data.opinionLabelDetected) {
+      score += applyModifier(
+        modifiers,
+        'Accuracy & Verifiability',
+        '3.3 Professional Standards',
+        '3.3 Fact/Opinion Distinction',
+        0,
+        'Opinion content is clearly labeled, maintaining transparency.',
+        'Variable',
+        'Scale'
+      );
     } else {
-      score -= 5;
-      modifiers.push({ factor: 'Freshness', change: -5, reason: 'Publication date found but could not be parsed.', icon: 'CalendarX' });
+      score += applyModifier(
+        modifiers,
+        'Accuracy & Verifiability',
+        '3.3 Professional Standards',
+        '3.3 Fact/Opinion Distinction',
+        -8,
+        'Opinion indicators found without explicit labeling, blurring fact-opinion boundaries.',
+        'Variable',
+        'Scale'
+      );
+    }
+  }
+
+  // Dimension 4: Objectivity & Tone
+  if (data.loadedLanguageCount > 0) {
+    const penalty = Math.min(data.loadedLanguageCount * 1.5, 20);
+    score += applyModifier(
+      modifiers,
+      'Objectivity & Tone',
+      '4.1 Use of Loaded Language',
+      '4.1 Loaded Language',
+      -penalty,
+      `${data.loadedLanguageCount} loaded term(s) detected, indicating persuasive tone.`,
+      'Major',
+      'AlertTriangle'
+    );
+  }
+
+  if (data.excessivePunctuationCount > 0) {
+    const punctuationPenalty = data.excessivePunctuationCount * 3;
+    score += applyModifier(
+      modifiers,
+      'Objectivity & Tone',
+      '4.2 Excessive Punctuation',
+      '4.2 Punctuation',
+      -punctuationPenalty,
+      'Headline or subheadings include excessive punctuation suggestive of sensationalism.',
+      'Minor',
+      'Type'
+    );
+  }
+
+  if (data.headlineAllCapsRatio > 0.3) {
+    score += applyModifier(
+      modifiers,
+      'Objectivity & Tone',
+      '4.3 All Caps Headline Usage',
+      '4.3 All Caps Headline',
+      -5,
+      'Headline relies heavily on all caps, signaling sensational framing.',
+      'Minor',
+      'CaseSensitive'
+    );
+  }
+
+  // Dimension 5: Presentation & Currency
+  if (data.publicationDate) {
+    const parsedDate = new Date(data.publicationDate);
+    if (isValid(parsedDate)) {
+      score += applyModifier(
+        modifiers,
+        'Presentation & Currency',
+        '5.1 Publication Date',
+        '5.1 Publication Date',
+        5,
+        'A parsable publication date confirms recency information.',
+        'Major',
+        'Calendar'
+      );
+    } else {
+      score += applyModifier(
+        modifiers,
+        'Presentation & Currency',
+        '5.1 Publication Date',
+        '5.1 Publication Date',
+        -10,
+        'Publication date present but unparseable, undermining currency.',
+        'Major',
+        'CalendarX'
+      );
     }
   } else {
-    score -= 10;
-    modifiers.push({ factor: 'Freshness', change: -10, reason: 'No publication date found.', icon: 'CalendarX' });
+    score += applyModifier(
+      modifiers,
+      'Presentation & Currency',
+      '5.1 Publication Date',
+      '5.1 Publication Date',
+      -10,
+      'No publication date found, hindering evaluation of timeliness.',
+      'Major',
+      'CalendarX'
+    );
   }
 
-  // Site Type
-  const siteTypeMap: Record<AnalysisData['siteType'], { change: number; reason: string }> = {
-    'Encyclopedia': { change: 15, reason: 'Encyclopedia format often implies structured, vetted information.' },
-    'News': { change: 5, reason: 'Established news sources often follow journalistic standards.' },
-    'Blog': { change: -10, reason: 'Blogs are often opinion-based and less rigorous.' },
-    'Forum': { change: -15, reason: 'Forum content is user-generated and highly variable in quality.' },
-    'Science': { change: 20, reason: 'Scientific journals suggest peer-reviewed, evidence-based content.' },
-    'Unknown': { change: -5, reason: 'The type of site could not be determined, suggesting a lack of clear focus.' },
-  }
-  const siteTypeMod = siteTypeMap[data.siteType];
-  score += siteTypeMod.change;
-  modifiers.push({ factor: 'Site Type', ...siteTypeMod, icon: 'BookOpen' });
-
-  // Citations
-  if (data.hasCitations) {
-    score += 20;
-    modifiers.push({ factor: 'Citations', change: 20, reason: 'The presence of "sources" or "references" suggests supporting evidence.', icon: 'Quote' });
-  } else {
-    score -= 10;
-    modifiers.push({ factor: 'Citations', change: -10, reason: 'No clear citations or links to supporting evidence found.', icon: 'Quote' });
+  if (data.advertisementDensity > 0.4) {
+    score += applyModifier(
+      modifiers,
+      'Presentation & Currency',
+      '5.2 Advertisement Density',
+      '5.2 Ad Density',
+      -5,
+      `High advertisement density (${Math.round(data.advertisementDensity * 100)}%) suggests commercial prioritization.`,
+      'Minor',
+      'BadgeDollarSign'
+    );
   }
 
-  // Ads
-  if (data.adCount === 0) {
-    score += 5;
-    modifiers.push({ factor: 'Ad Presence', change: 5, reason: 'No ads detected, suggesting a non-commercial focus.', icon: 'BadgeDollarSign' });
-  } else if (data.adCount > 5) {
-    const change = -Math.min(data.adCount * 2, 15);
-    score += change;
-    modifiers.push({ factor: 'Ad Presence', change, reason: `High number of ads (${data.adCount}) may indicate a primary focus on revenue over content.`, icon: 'BadgeDollarSign' });
-  }
-  
-  // External Links
-  if (data.externalLinkCount > 10) {
-    const change = Math.min(Math.floor(data.externalLinkCount / 5), 15);
-    score += change;
-    modifiers.push({ factor: 'External Links', change, reason: `Numerous external links (${data.externalLinkCount}) suggest a well-referenced article.`, icon: 'Link' });
-  } else if (data.externalLinkCount < 2) {
-      score -= 5;
-      modifiers.push({ factor: 'External Links', change: -5, reason: 'Very few external links, which may indicate a lack of external sources.', icon: 'Link' });
+  if (data.readabilityScore < 30) {
+    score += applyModifier(
+      modifiers,
+      'Presentation & Currency',
+      '5.3 Readability Score',
+      '5.3 Readability',
+      -5,
+      `Flesch Reading Ease score of ${data.readabilityScore} indicates very difficult text.`,
+      'Minor',
+      'BookOpen'
+    );
   }
 
   return {
     score: Math.max(0, Math.min(100, Math.round(score))),
     modifiers,
-    data
+    data,
   };
 }
