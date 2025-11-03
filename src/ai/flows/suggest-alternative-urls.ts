@@ -40,13 +40,12 @@ const prompt = ai.definePrompt({
   name: 'suggestAlternativeURLsPrompt',
   input: {schema: SuggestAlternativeURLsInputSchema},
   output: {schema: SuggestAlternativeURLsOutputSchema},
-  tools: [googleAI.googleSearch],
   prompt: `You are an expert AI research assistant. The user wants to find alternative, credible sources for a given topic.
 
   The user's current topic is: "{{{topic}}}"
   The user is currently viewing this URL: {{{currentUrl}}}
 
-  Your task is to use the googleSearch tool to find 3 real, currently accessible articles on the same topic from different, highly-credible news organizations or academic sources (e.g., Reuters, Associated Press, BBC News, The New York Times, Nature, Science, etc.).
+  Search your knowledge base to find 3 real, currently accessible articles on the same topic from different, highly-credible news organizations or academic sources (e.g., Reuters, Associated Press, BBC News, The New York Times, Nature, Science, etc.).
 
   Do not suggest the same domain as the user's current URL.
 

@@ -8,15 +8,30 @@ export type AnalysisData = {
   siteType: 'News' | 'Encyclopedia' | 'Blog' | 'Forum' | 'Science' | 'Unknown';
   linkCount: number;
   externalLinkCount: number;
+  internalLinkCount: number;
   adCount: number;
+  advertisementDensity: number;
   hasCitations: boolean;
+  correctionsPolicyFound: boolean;
+  ownershipDisclosureFound: boolean;
+  hasAuthorBioLink: boolean;
+  authorIsGeneric: boolean;
+  loadedLanguageCount: number;
+  excessivePunctuationCount: number;
+  headlineAllCapsRatio: number;
+  readabilityScore: number;
+  isOpinionOrEditorial: boolean;
+  opinionLabelDetected: boolean;
   content: string; // for AI analysis
 };
 
 export type ScoreModifier = {
+  dimension: string;
+  criterion: string;
   factor: string;
   change: number;
   reason: string;
+  severity: 'Critical' | 'Major' | 'Minor' | 'Variable';
   icon: keyof typeof import("lucide-react");
 };
 

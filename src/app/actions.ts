@@ -4,7 +4,114 @@ import { generateSummaryAndAnalysis } from '@/ai/flows/generate-summary-and-anal
 import { suggestAlternativeURLs } from '@/ai/flows/suggest-alternative-urls';
 import { calculateScore } from '@/lib/scoring';
 import type { AnalysisData, FormState } from '@/lib/types';
+import { calculateFleschReadingEase, countLoadedLanguage, countExcessivePunctuation, computeAllCapsRatio, extractLargestTextBlock, normalizeWhitespace } from '@/lib/text-analysis';
 import * as cheerio from 'cheerio';
+
+type OpinionDetection = {
+  isOpinion: boolean;
+  hasExplicitLabel: boolean;
+};
+
+const CORRECTIONS_KEYWORDS = ['corrections', 'correction policy', 'errata', 'erratum', 'retractions'];
+const OWNERSHIP_KEYWORDS = ['about us', 'our mission', 'ownership', 'funding', 'who we are', 'masthead', 'advertising disclosure', 'sponsors', 'transparency'];
+const OPINION_INDICATORS = ['opinion', 'editorial', 'commentary', 'analysis', 'perspective'];
+
+function isGenericAuthorName(author: string | null): boolean {
+  if (!author) return true;
+  const normalized = author.toLowerCase();
+  const genericTerms = ['staff', 'team', 'editorial', 'newsroom', 'desk', 'anonymous', 'unknown'];
+  return genericTerms.some(term => normalized.includes(term));
+}
+
+function detectPolicyLink($: cheerio.CheerioAPI, keywords: string[]): boolean {
+  return $('a[href]').toArray().some((anchor) => {
+    const element = $(anchor);
+    const text = normalizeWhitespace(element.text().toLowerCase());
+    const href = element.attr('href')?.toLowerCase() ?? '';
+    return keywords.some(keyword => text.includes(keyword) || href.includes(keyword.replace(/\s+/g, '-')));
+  });
+}
+
+function detectAuthorBioLink($: cheerio.CheerioAPI, author: string | null): boolean {
+  if (!author) return false;
+  const normalizedAuthor = author.toLowerCase();
+  return $('a[href]').toArray().some((anchor) => {
+    const element = $(anchor);
+    const href = element.attr('href')?.toLowerCase() ?? '';
+    const text = normalizeWhitespace(element.text().toLowerCase());
+    if (!href && !text) return false;
+    const authorMatch = normalizedAuthor && (text.includes(normalizedAuthor) || href.includes('/author/') || href.includes('/writers/'));
+    const bioMatch = text.includes('bio') || text.includes('about the author') || href.includes('bio');
+    return authorMatch && bioMatch;
+  });
+}
+
+function extractMainContent($: cheerio.CheerioAPI): string {
+  $('script, style, nav, header, footer, aside, form, [role="navigation"], [role="search"], .ad, .advert, noscript').remove();
+
+  const candidateSelectors = [
+    'article',
+    'main',
+    '[role="main"]',
+    '#content',
+    '#main',
+    '.article-body',
+    '.post-content',
+    '.entry-content',
+    '.story-content',
+  ];
+
+  const candidates: string[] = candidateSelectors
+    .map(selector => $(selector).text())
+    .filter(Boolean);
+
+  if (candidates.length === 0) {
+    const paragraphs = $('p').toArray().map(p => $(p).text()).filter(Boolean);
+    candidates.push(paragraphs.join(' '));
+  }
+
+  if (candidates.length === 0) {
+    candidates.push($('body').text());
+  }
+
+  const largestBlock = extractLargestTextBlock(candidates);
+  return normalizeWhitespace(largestBlock).substring(0, 8000);
+}
+
+function computeAdvertisementDensity($: cheerio.CheerioAPI, adCount: number): number {
+  const contentBlocks = $('p, article, section, div').length || 1;
+  return Math.min(adCount / contentBlocks, 1);
+}
+
+function detectOpinionSignals($: cheerio.CheerioAPI, title: string, content: string): OpinionDetection {
+  const lowerTitle = title.toLowerCase();
+  const lowerContent = content.toLowerCase();
+
+  const metaSection = $('meta[property="article:section"]').attr('content')?.toLowerCase() ?? '';
+  const metaType = $('meta[name="type"]').attr('content')?.toLowerCase() ?? '';
+
+  const isOpinion = OPINION_INDICATORS.some(keyword => lowerContent.includes(keyword));
+  const hasLabelInTitle = OPINION_INDICATORS.some(keyword => lowerTitle.startsWith(`${keyword}:`) || lowerTitle.includes(`${keyword}:`) || lowerTitle.startsWith(keyword + ' '));
+  const hasLabelInMeta = OPINION_INDICATORS.some(keyword => metaSection.includes(keyword) || metaType.includes(keyword));
+
+  return {
+    isOpinion,
+    hasExplicitLabel: hasLabelInTitle || hasLabelInMeta,
+  };
+}
+
+function detectOpinionSignalsFromText(title: string, content: string): OpinionDetection {
+  const lowerTitle = title.toLowerCase();
+  const lowerContent = content.toLowerCase();
+
+  const isOpinion = OPINION_INDICATORS.some(keyword => lowerContent.includes(keyword));
+  const hasLabelInTitle = OPINION_INDICATORS.some(keyword => lowerTitle.startsWith(`${keyword}:`) || lowerTitle.includes(`${keyword}:`) || lowerTitle.startsWith(keyword + ' '));
+
+  return {
+    isOpinion,
+    hasExplicitLabel: hasLabelInTitle,
+  };
+}
 
 async function scrapeUrl(url: string): Promise<AnalysisData> {
   const controller = new AbortController();
@@ -99,25 +206,7 @@ async function scrapeUrl(url: string): Promise<AnalysisData> {
       } catch(e) { /* Ignore script parsing errors */ }
     }
 
-    // Improved content extraction
-    // Try to find the main content in common article containers
-    let mainContent = '';
-    
-    $('script, style, nav, header, footer, aside, form, [role="navigation"], [role="search"], .ad, .advert, noscript').remove();
-    
-    mainContent = $('article').text() || $('[role="main"]').text() || $('main').text();
-    
-    if (!mainContent || mainContent.length < 200) {
-      // A more generic attempt if specific tags fail
-      mainContent = $('#content, #main, .post-content, .article-body, .story-content').text();
-    }
-    
-    // If specific containers aren't found, fall back to the cleaned body
-    if (!mainContent || mainContent.length < 200) {
-      mainContent = $('body').text();
-    }
-    
-    const content = mainContent.replace(/\s+/g, ' ').trim();
+    const content = extractMainContent($);
 
     // Find author from content as a last resort
     if (!author) {
@@ -135,7 +224,8 @@ async function scrapeUrl(url: string): Promise<AnalysisData> {
 
     const urlObject = new URL(url);
     const domain = urlObject.hostname;
-    const title = $('title').first().text() || url;
+    const title = normalizeWhitespace($('title').first().text() || url);
+    author = author ? normalizeWhitespace(author) : null;
 
 
     // Heuristics for site type
@@ -153,6 +243,33 @@ async function scrapeUrl(url: string): Promise<AnalysisData> {
         }
     }
 
+    const correctionsPolicyFound = detectPolicyLink($, CORRECTIONS_KEYWORDS);
+    const ownershipDisclosureFound = detectPolicyLink($, OWNERSHIP_KEYWORDS);
+    const hasAuthorBioLink = detectAuthorBioLink($, author);
+    const authorIsGeneric = isGenericAuthorName(author);
+
+    const allAnchors = $('a[href]');
+    const externalLinks = allAnchors.filter((_, el) => {
+      const href = $(el).attr('href') ?? '';
+      if (!href) return false;
+      if (href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) return false;
+      if (!href.startsWith('http')) return false;
+      return !href.includes(domain);
+    }).length;
+
+    const internalLinks = allAnchors.length - externalLinks;
+
+    const adElements = $('[class*="ad"], [id*="ad"], .advertisement, .sponsored, [data-ad], iframe[src*="ads"], .sponsor').length;
+    const adCount = adElements;
+    const advertisementDensity = computeAdvertisementDensity($, adCount);
+
+    const readabilityScore = calculateFleschReadingEase(content);
+    const loadedLanguageCount = countLoadedLanguage(content);
+    const titleAndHeadings = `${title} ${$('h1, h2').text()}`;
+    const excessivePunctuationCount = countExcessivePunctuation(titleAndHeadings);
+    const headlineAllCapsRatio = computeAllCapsRatio(title);
+
+    const { isOpinion, hasExplicitLabel } = detectOpinionSignals($, title, content);
 
     return {
       url,
@@ -160,10 +277,22 @@ async function scrapeUrl(url: string): Promise<AnalysisData> {
       author,
       publicationDate,
       siteType,
-      linkCount: $('a').length,
-      externalLinkCount: $(`a[href^="http"]`).filter((i, el) => !$(el).attr('href')?.includes(domain)).length,
-      adCount: $('iframe[src*="ads"]').length + $('.ad, .advert, [id*="ad-"]').length,
+      linkCount: allAnchors.length,
+      externalLinkCount: externalLinks,
+      internalLinkCount: internalLinks,
+      adCount,
+      advertisementDensity,
       hasCitations: /references|sources|citations/i.test(content),
+      correctionsPolicyFound,
+      ownershipDisclosureFound,
+      hasAuthorBioLink,
+      authorIsGeneric,
+      loadedLanguageCount,
+      excessivePunctuationCount,
+      headlineAllCapsRatio,
+      readabilityScore,
+      isOpinionOrEditorial: isOpinion,
+      opinionLabelDetected: hasExplicitLabel,
       content: content.substring(0, 5000), // Limit content size for AI analysis
     };
   } catch (error: any) {
@@ -244,19 +373,41 @@ export async function analyzeTextAction(prevState: FormState, formData: FormData
       siteType = 'Science';
     }
 
-    const title = text.substring(0, 80) + '... (Pasted Text)';
+    const title = `${normalizeWhitespace(text.substring(0, 120))}... (Pasted Text)`;
 
+    const readabilityScore = calculateFleschReadingEase(text);
+    const loadedLanguageCount = countLoadedLanguage(text);
+    const excessivePunctuationCount = countExcessivePunctuation(title);
+    const headlineAllCapsRatio = computeAllCapsRatio(title);
+    const correctionsPolicyFound = CORRECTIONS_KEYWORDS.some(keyword => text.toLowerCase().includes(keyword));
+    const ownershipDisclosureFound = OWNERSHIP_KEYWORDS.some(keyword => text.toLowerCase().includes(keyword));
+    const { isOpinion, hasExplicitLabel } = detectOpinionSignalsFromText(title, text);
 
-     const manualData: AnalysisData = {
+    const linkMatches = text.match(/https?:\/\//gi) || [];
+    const externalLinkCount = linkMatches.length;
+
+    const manualData: AnalysisData = {
       url: `manual-text-${Date.now()}`,
       title,
       author: author,
       publicationDate: new Date().toISOString(),
       siteType: siteType,
-      linkCount: (text.match(/http/g) || []).length,
-      externalLinkCount: (text.match(/http/g) || []).length,
+      linkCount: externalLinkCount,
+      externalLinkCount,
+      internalLinkCount: 0,
       adCount: 0,
+      advertisementDensity: 0,
       hasCitations: /references|sources|citations/i.test(text),
+      correctionsPolicyFound,
+      ownershipDisclosureFound,
+      hasAuthorBioLink: false,
+      authorIsGeneric: isGenericAuthorName(author),
+      loadedLanguageCount,
+      excessivePunctuationCount,
+      headlineAllCapsRatio,
+      readabilityScore,
+      isOpinionOrEditorial: isOpinion,
+      opinionLabelDetected: hasExplicitLabel,
       content: text.substring(0, 5000),
     };
     
@@ -287,8 +438,16 @@ export async function getAiAnalysisAction(analysisDataString: string) {
       'Article Title': analysisData.title,
       Author: analysisData.author || 'Not available',
       'Site Type': analysisData.siteType,
-      'Has Citations': analysisData.hasCitations,
+      'Has Citations Keyword Match': analysisData.hasCitations,
+      'External Links Detected': analysisData.externalLinkCount,
+      'Internal Links Detected': analysisData.internalLinkCount,
+      'Corrections Policy Found': analysisData.correctionsPolicyFound,
+      'Ownership Disclosure Found': analysisData.ownershipDisclosureFound,
+      'Author Bio Link Present': analysisData.hasAuthorBioLink,
       'Ad Count': analysisData.adCount,
+      'Ad Density Estimate': analysisData.advertisementDensity,
+      'Readability (Flesch)': analysisData.readabilityScore,
+      'Loaded Language Count': analysisData.loadedLanguageCount,
       'Content Snippet': analysisData.content.substring(0, 2000), // Pass a snippet
     };
 
